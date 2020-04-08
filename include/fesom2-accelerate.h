@@ -4,6 +4,8 @@
 #include <iostream>
 #include <cuda_runtime_api.h>
 
+using real_type = double;
+
 /**
  A structure to map GPU and host memory.
 */
