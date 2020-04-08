@@ -38,18 +38,21 @@ inline bool errorHandling(cudaError_t error)
  Function to transfer data from the host to the device.
 
  @param buffer A reference to the memory
- @param stream The CUDA stream associated with the transfer
  @param synchronous A boolean value to control synchronization
+ @param stream The CUDA stream associated with the transfer
 
  @return The boolean value true if there are no errors, false otherwise
 */
-inline bool transferToDevice(gpuMemory & buffer, cudaStream_t stream = 0, bool synchronous = true)
+inline bool transferToDevice(gpuMemory & buffer, bool synchronous = true, cudaStream_t stream = (cudaStream_t) 0)
 {
     cudaError_t status = cudaSuccess;
-    status = cudaMemcpy(buffer.device_pointer, buffer.host_pointer, buffer.size, cudaMemcpyHostToDevice);
     if ( synchronous )
     {
-        cudaStreamSynchronize(stream);
+        status = cudaMemcpy(buffer.device_pointer, buffer.host_pointer, buffer.size, cudaMemcpyHostToDevice);
+    }
+    else
+    {
+        cudaMemcpyAsync(buffer.device_pointer, buffer.host_pointer, buffer.size, cudaMemcpyHostToDevice, stream);
     }
     return errorHandling(status);
 }
@@ -58,18 +61,22 @@ inline bool transferToDevice(gpuMemory & buffer, cudaStream_t stream = 0, bool s
  Function to transfer data from the device to the host.
 
  @param buffer A reference to the memory
- @param stream The CUDA stream associated with the transfer
  @param synchronous A boolean value to control synchronization
+ @param stream The CUDA stream associated with the transfer
 
  @return The boolean value true if there are no errors, false otherwise
 */
-inline bool transferToHost(gpuMemory & buffer, cudaStream_t stream = 0, bool synchronous = true)
+inline bool transferToHost(gpuMemory & buffer, bool synchronous = true, cudaStream_t stream = (cudaStream_t) 0)
 {
     cudaError_t status= cudaSuccess;
-    status = cudaMemcpy(buffer.host_pointer, buffer.device_pointer, buffer.size, cudaMemcpyDeviceToHost);
     if ( synchronous )
     {
-        cudaStreamSynchronize(stream);
+        status = cudaMemcpy(buffer.host_pointer, buffer.device_pointer, buffer.size, cudaMemcpyDeviceToHost);
     }
+    else
+    {
+        cudaMemcpyAsync(buffer.host_pointer, buffer.device_pointer, buffer.size, cudaMemcpyDeviceToHost, stream);
+    }
+    
     return errorHandling(status);
 }
