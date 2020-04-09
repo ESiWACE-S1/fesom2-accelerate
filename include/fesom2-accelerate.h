@@ -1,7 +1,8 @@
 
 #include <cstdlib>
-#include <driver_types.h>
 #include <iostream>
+#include <limits>
+#include <driver_types.h>
 #include <cuda_runtime_api.h>
 
 using real_type = double;
