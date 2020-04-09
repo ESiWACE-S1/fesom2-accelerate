@@ -1,10 +1,12 @@
 
 #include <fesom2-accelerate.h>
 
+const int TODO_INT = 0;
+
 /**
  3D Flux Corrected Transport scheme
 */
-void fct_ale(unsigned int myDim_nod2D, unsigned int edim_nod2D, int * nlevels_nod2D, real_type ** fct_ttf_max, real_type ** fct_ttf_min, real_type ** fct_LO, real_type ** ttf, unsigned int myDim_elem2D)
+void fct_ale(unsigned int myDim_nod2D, unsigned int eDim_nod2D, int * nLevels_nod2D, real_type * fct_ttf_max, real_type * fct_ttf_min, real_type * fct_LO, real_type * ttf, unsigned int myDim_elem2D, int * nLevels, real_type * UV_rhs, int nl)
 {
     /*
     ! a1. max, min between old solution and updated low-order solution per node
@@ -15,12 +17,13 @@ void fct_ale(unsigned int myDim_nod2D, unsigned int edim_nod2D, int * nlevels_no
         end do
     end do   
     */
-    for ( unsigned int node2D = 0; node2D < myDim_nod2D + edim_nod2D; node2D++ )
+    for ( unsigned int node2D = 0; node2D < myDim_nod2D + eDim_nod2D; node2D++ )
     {
-        for ( unsigned int node2D_z = 0; node2D_z < nlevels_nod2D[node2D] - 1; node2D_z++ )
+        for ( unsigned int node2D_z = 0; node2D_z < nLevels_nod2D[node2D] - 1; node2D_z++ )
         {
-            fct_ttf_max[node2D_z][node2D] = std::max(fct_LO[node2D_z][node2D], ttf[node2D_z][node2D]);
-            fct_ttf_min[node2D_z][node2D] = std::min(fct_LO[node2D_z][node2D], ttf[node2D_z][node2D]);
+            unsigned int item = (node2D_z * TODO_INT) + node2D;
+            fct_ttf_max[item] = std::max(fct_LO[item], ttf[item]);
+            fct_ttf_min[item] = std::min(fct_LO[item], ttf[item]);
         }
     }
     /*
@@ -43,6 +46,20 @@ void fct_ale(unsigned int myDim_nod2D, unsigned int edim_nod2D, int * nlevels_no
     */
    for ( unsigned int element = 0; element < myDim_elem2D; element++ )
    {
-
+       for ( unsigned int element_z = 0; element_z < nLevels[element] - 1; element_z++ )
+       {
+           unsigned int item = (element_z * TODO_INT) + element;
+           UV_rhs[item] = std::max();
+           UV_rhs[(TODO_INT * TODO_INT) + item] = std::min();
+       }
+       if ( nLevels[element] <= nl - 1 )
+       {
+           for ( unsigned int element_z = nLevels[element] - 1; element_z < nl - 1; element_z++ )
+           {
+               unsigned int item = (element_z * TODO_INT) + element;
+                UV_rhs[item] = std::numeric_limits<real_type>::min();
+                UV_rhs[(TODO_INT * TODO_INT) + item] = std::numeric_limits<real_type>::max();
+           }
+       }
    }
 }
