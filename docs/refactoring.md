@@ -344,3 +344,11 @@ All variables defined outside the scope of the subroutine need to be identified.
     - Two dimensional array, containing the tracer field at step n.
 - myDim_elem2D : *integer*
     - Used in multiple loops, it represent the index of some element.
+- elem2D_nodes : *integer array*
+    - Two dimensional array, not sure about the content yet.
+- nlevels : *integer array*
+    - Array containing the size of some dimension.
+- UV_rhs : *real array*
+    - Three dimensional array. The first dimension seem to be limited to the set [1, 2].
+- nl : *integer pointer*
+    - Points to a single integer value in T_MESH.
