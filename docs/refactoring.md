@@ -351,4 +351,10 @@ All variables defined outside the scope of the subroutine need to be identified.
 - UV_rhs : *real array*
     - Three dimensional array. The first dimension seem to be limited to the set [1, 2].
 - nl : *integer pointer*
-    - Points to a single integer value in T_MESH.
+    - Points to a single integer value in T_MESH, probably the number of vertical layers.
+- vlimit : *integer*
+    - Switch to control some different limiting strategies.
+- tvert_max : *real array*
+    - Array containing the maximum temperature of vertical layers.
+- tvert_min : *real array*
+    - Array containing the minimum temperature of vertical layers.
