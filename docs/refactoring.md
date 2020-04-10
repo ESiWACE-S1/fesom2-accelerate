@@ -358,3 +358,17 @@ All variables defined outside the scope of the subroutine need to be identified.
     - Array containing the maximum temperature of vertical layers.
 - tvert_min : *real array*
     - Array containing the minimum temperature of vertical layers.
+- fct_plus : *real array*
+    - Two dimensional array, containing the result of some integration.
+- fct_minus : *real array*
+    - Two dimensional array, containing the result of some integration.
+- fct_adf_v : *real array*
+    - Two dimensional array, containing some antidif. vertical flux.
+- fct_adf_h : *real array*
+    - Two dimensional array, containing some antidif. horizontal flux.
+- myDim_edge2D : *integer*
+    - Represents the number of edges.
+- edges : *integer array*
+    - Two dimensional array, containing the two vertices of an edge.
+- edge_tri : *integer array*
+    - Two dimensional array, containing the two vertices of an edge.
