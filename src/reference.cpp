@@ -7,7 +7,7 @@ const real_type TODO_REAL = 0.0;
 /**
  3D Flux Corrected Transport scheme
 */
-void fct_ale(unsigned int myDim_nod2D, unsigned int eDim_nod2D, int * nLevels_nod2D, real_type * fct_ttf_max, real_type * fct_ttf_min, real_type * fct_LO, real_type * ttf, unsigned int myDim_elem2D, int * nLevels, real_type * UV_rhs, int nl, int vLimit, real_type * tvert_max, real_type * tvert_min)
+void fct_ale(unsigned int myDim_nod2D, unsigned int eDim_nod2D, int * nLevels_nod2D, real_type * fct_ttf_max, real_type * fct_ttf_min, real_type * fct_LO, real_type * ttf, unsigned int myDim_elem2D, int * nLevels, real_type * UV_rhs, int nl, int vLimit, real_type * tvert_max, real_type * tvert_min, real_type * fct_plus, real_type * fct_minus, real_type * fct_adf_v, int myDim_edge2D, int * edges, int * edge_tri, real_type * fct_adf_h)
 {
     /*
     ! a1. max, min between old solution and updated low-order solution per node
@@ -155,8 +155,8 @@ void fct_ale(unsigned int myDim_nod2D, unsigned int eDim_nod2D, int * nLevels_no
             }
             for ( unsigned int node_z = 1; node_z < nLevels_nod2D[node] - 2; node_z++ )
             {
-                tvert_max[node_z] = std::max(TODO_REAL);
-                tvert_min[node_z] = std::min(TODO_REAL);
+                tvert_max[node_z] = std::max(TODO_REAL, TODO_REAL);
+                tvert_min[node_z] = std::min(TODO_REAL, TODO_REAL);
             }
             for( unsigned int node_z = 0; node_z < nLevels_nod2D[node] - 1; node_z++ )
             {
@@ -164,6 +164,123 @@ void fct_ale(unsigned int myDim_nod2D, unsigned int eDim_nod2D, int * nLevels_no
                 fct_ttf_max[item] = tvert_max[node_z] - fct_LO[item];
                 fct_ttf_min[item] = tvert_min[node_z] - fct_LO[item];
             }
+        }
+    }
+    /*
+    ! Vertical3: Vertical bounds are taken into account only if they are narrower than the
+    !            horizontal ones  
+    if(vlimit==3) then
+        do n=1, myDim_nod2D
+            do nz=1,nlevels_nod2D(n)-1
+                tvert_max(nz)= maxval(UV_rhs(1,nz,nod_in_elem2D(1:nod_in_elem2D_num(n),n)))
+                tvert_min(nz)= minval(UV_rhs(2,nz,nod_in_elem2D(1:nod_in_elem2D_num(n),n)))
+            end do
+            do nz=2, nlevels_nod2D(n)-2
+                tvert_max(nz)=min(tvert_max(nz),maxval(fct_ttf_max(nz-1:nz+1,n)))
+                tvert_min(nz)=max(tvert_min(nz),minval(fct_ttf_max(nz-1:nz+1,n)))
+            end do
+            do nz=1,nlevels_nod2D(n)-1
+                fct_ttf_max(nz,n)=tvert_max(nz)-fct_LO(nz,n)
+                fct_ttf_min(nz,n)=tvert_min(nz)-fct_LO(nz,n)  
+            end do
+        end do
+    end if
+    */
+    if ( vLimit == 3 )
+    {
+        for ( unsigned int node = 0; node < myDim_nod2D; node++ )
+        {
+            for( unsigned int node_z = 0; node_z < nLevels_nod2D[node] - 1; node_z++ )
+            {
+                tvert_max[node_z] = TODO_REAL;
+                tvert_min[node_z] = TODO_REAL;
+            }
+            for ( unsigned int node_z = 1; node_z < nLevels_nod2D[node] - 2; node_z++ )
+            {
+                tvert_max[node_z] = std::min(TODO_REAL, TODO_REAL);
+                tvert_min[node_z] = std::max(TODO_REAL, TODO_REAL);
+            }
+            for( unsigned int node_z = 0; node_z < nLevels_nod2D[node] - 1; node_z++ )
+            {
+                unsigned int item = (node_z * TODO_INT) + node;
+                fct_ttf_max[item] = tvert_max[node_z] - fct_LO[item];
+                fct_ttf_min[item] = tvert_min[node_z] - fct_LO[item];
+            }
+        }
+    }
+    /*
+    ! b1. Split positive and negative antidiffusive contributions
+    ! --> sum all positive (fct_plus), negative (fct_minus) antidiffusive 
+    !     horizontal element and vertical node contribution to node n and layer nz
+    !     see. R. Löhner et al. "finite element flux corrected transport (FEM-FCT)
+    !     for the euler and navier stoke equation
+    do n=1, myDim_nod2D
+        do nz=1,nlevels_nod2D(n)-1
+            fct_plus(nz,n)=0._WP
+            fct_minus(nz,n)=0._WP
+        end do
+    end do
+    
+    !Vertical
+    do n=1, myDim_nod2D
+        do nz=1,nlevels_nod2D(n)-1
+            fct_plus(nz,n) =fct_plus(nz,n) +(max(0.0_WP,fct_adf_v(nz,n))+max(0.0_WP,-fct_adf_v(nz+1,n)))
+            fct_minus(nz,n)=fct_minus(nz,n)+(min(0.0_WP,fct_adf_v(nz,n))+min(0.0_WP,-fct_adf_v(nz+1,n)))
+        end do
+    end do
+    
+    !Horizontal
+    do edge=1, myDim_edge2D
+        enodes(1:2)=edges(:,edge)   
+        el=edge_tri(:,edge)
+        nl1=nlevels(el(1))-1
+        nl2=0
+        if(el(2)>0) then
+            nl2=nlevels(el(2))-1
+        end if   
+        do nz=1, max(nl1,nl2)
+            fct_plus (nz,enodes(1))=fct_plus (nz,enodes(1)) + max(0.0_WP, fct_adf_h(nz,edge))
+            fct_minus(nz,enodes(1))=fct_minus(nz,enodes(1)) + min(0.0_WP, fct_adf_h(nz,edge))  
+            fct_plus (nz,enodes(2))=fct_plus (nz,enodes(2)) + max(0.0_WP,-fct_adf_h(nz,edge))
+            fct_minus(nz,enodes(2))=fct_minus(nz,enodes(2)) + min(0.0_WP,-fct_adf_h(nz,edge)) 
+        end do
+    end do
+    */
+    for ( unsigned int node = 0; node < myDim_nod2D; node++ )
+    {
+        for ( unsigned int node_z = 0; node_z < nLevels_nod2D[node] - 1; node_z++ )
+        {
+            unsigned int item = (node_z * TODO_INT) + node;
+            fct_plus[item] = 0.0;
+            fct_minus[item] = 0.0;
+        }
+    }
+    for ( unsigned int node = 0; node < myDim_nod2D; node++ )
+    {
+        for ( unsigned int node_z = 0; node_z < nLevels_nod2D[node] - 1; node_z++ )
+        {
+            unsigned int item = (node_z * TODO_INT) + node;
+            fct_plus[item] += std::max(0.0, fct_adf_v[item]) + std::max(0.0, -fct_adf_v[((node_z + 1) * TODO_INT) + node]);
+            fct_minus[item] += std::min(0.0, fct_adf_v[item]) + std::min(0.0, -fct_adf_v[((node_z + 1) * TODO_INT) + node]);
+        }
+    }
+    for ( unsigned int edge = 0; edge < myDim_edge2D; edge++ )
+    {
+        unsigned int node_l1 =0, node_l2 = 0;
+
+        int edgeNodes [2] = {edges[edge], edges[2 * myDim_edge2D]};
+        node_l1 = nLevels[edge_tri[edge]] - 1;
+        if ( edge_tri[2 * edge] > 0 )
+        {
+            node_l2 = nLevels[edge_tri[2 * edge]] - 1;
+        }
+        for ( unsigned int node__z = 0; node__z < std::max(node_l1, node_l2); node__z++ )
+        {
+            unsigned int item = (node__z * TODO_INT) + edge;
+            fct_plus[(node__z * TODO_INT) + edgeNodes[0]] += std::max(0.0, fct_adf_h[item]);
+            fct_minus[(node__z * TODO_INT) + edgeNodes[0]] += std::min(0.0, fct_adf_h[item]);
+            fct_plus[(node__z * TODO_INT) + edgeNodes[1]] += std::max(0.0, -fct_adf_h[item]);
+            fct_minus[(node__z * TODO_INT) + edgeNodes[1]] += std::min(0.0, -fct_adf_h[item]);
         }
     }
 }
