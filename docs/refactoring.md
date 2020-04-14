@@ -152,7 +152,7 @@ subroutine fct_ale(ttf, iter_yn, mesh)
     ! --> sum all positive (fct_plus), negative (fct_minus) antidiffusive 
     !     horizontal element and vertical node contribution to node n and layer nz
     !     see. R. Löhner et al. "finite element flux corrected transport (FEM-FCT)
-    !     for the euler and navier stoke equation
+    !     for the euler and navier stoke equation"
     do n=1, myDim_nod2D
         do nz=1,nlevels_nod2D(n)-1
             fct_plus(nz,n)=0._WP
