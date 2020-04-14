@@ -318,20 +318,35 @@ end subroutine fct_ale
 
 All variables defined outside the scope of the subroutine need to be identified.
 
+#### Nodes, elements, and edges
 - myDim_nod2D : *integer*
     - Used in multiple loops, it represents the beginning of some partition.
 - eDim_nod2D : *integer*
     - Used in multiple loops, it represent the size of some partition.
 - myDim_elem2D : *integer*
     - Used in multiple loops, it represent the index of some element.
+- elem2D_nodes : *integer array*
+    - Two dimensional array, not sure about the content yet.
+- hnode : *real array*
+    - Two dimensional array, not sure about the content.
+- hnode_new : *real array*
+    - Two dimensional array, not sure about the content.
 - myDim_edge2D : *integer*
     - Represents the number of edges.
+- edges : *integer array*
+    - Two dimensional array, containing the two vertices of an edge.
+- edge_tri : *integer array*
+    - Two dimensional array, containing the two vertices of an edge.
 
+#### Levels (vertical layers)
 - nlevels : *integer array*
     - Array containing the size of some dimension.
 - nlevels_nod2D : *integer array*
     - Array containing the size of some local dimension.
+- nl : *integer pointer*
+    - Points to a single integer value in T_MESH, probably the number of vertical layers.
 
+#### FCT
 - fct_ttf_max : *real array*
     - Two dimensional array, containing the maximum of some previous step.
 - fct_ttf_min : *real array*
@@ -351,6 +366,7 @@ All variables defined outside the scope of the subroutine need to be identified.
 - fct_adf_h2 : *real array*
     - Two dimensional array, containing some iterative antidif. horizontal flux.
 
+#### TTF
 - ttf : *real array*
     - Two dimensional array, containing the tracer field at step n.
 - del_ttf_advvert : *real array*
@@ -358,20 +374,7 @@ All variables defined outside the scope of the subroutine need to be identified.
 - del_ttf_advhoriz : *real array*
     - Horizontal component of something.
 
-- elem2D_nodes : *integer array*
-    - Two dimensional array, not sure about the content yet.
-- hnode : *real array*
-    - Two dimensional array, not sure about the content.
-- hnode_new : *real array*
-    - Two dimensional array, not sure about the content.
-
-- edges : *integer array*
-    - Two dimensional array, containing the two vertices of an edge.
-- edge_tri : *integer array*
-    - Two dimensional array, containing the two vertices of an edge.
-
-- nl : *integer pointer*
-    - Points to a single integer value in T_MESH, probably the number of vertical layers.
+#### Scalars 
 - vlimit : *integer*
     - Switch to control some different limiting strategies.
 - dt : *real*
@@ -379,6 +382,7 @@ All variables defined outside the scope of the subroutine need to be identified.
 - iter_yn : *boolean*
     - Switch to enable an iterative method to compute fct.
 
+#### Arrays
 - UV_rhs : *real array*
     - Three dimensional array. The first dimension seem to be limited to the set [1, 2].
 - tvert_max : *real array*
