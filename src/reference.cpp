@@ -355,7 +355,7 @@ void fct_ale(unsigned int myDim_nod2D, unsigned int eDim_nod2D, int * nLevels_no
         ! the bottom flux is always zero 
         end do
 
-            call exchange_nod_end  ! fct_plus, fct_minus
+        call exchange_nod_end  ! fct_plus, fct_minus
         
         !Horizontal
         do edge=1, myDim_edge2D
