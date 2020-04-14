@@ -7,7 +7,7 @@ const real_type TODO_REAL = 0.0;
 /**
  3D Flux Corrected Transport scheme
 */
-void fct_ale(unsigned int myDim_nod2D, unsigned int eDim_nod2D, int * nLevels_nod2D, real_type * fct_ttf_max, real_type * fct_ttf_min, real_type * fct_LO, real_type * ttf, unsigned int myDim_elem2D, int * nLevels, real_type * UV_rhs, int nl, int vLimit, real_type * tvert_max, real_type * tvert_min, real_type * fct_plus, real_type * fct_minus, real_type * fct_adf_v, int myDim_edge2D, int * edges, int * edge_tri, real_type * fct_adf_h, real_type dt, real_type * area, bool iter_yn, real_type * fct_adf_v2, real_type * fct_adf_h2)
+void fct_ale(unsigned int myDim_nod2D, unsigned int eDim_nod2D, int * nLevels_nod2D, real_type * fct_ttf_max, real_type * fct_ttf_min, real_type * fct_LO, real_type * ttf, unsigned int myDim_elem2D, int * nLevels, real_type * UV_rhs, int nl, int vLimit, real_type * tvert_max, real_type * tvert_min, real_type * fct_plus, real_type * fct_minus, real_type * fct_adf_v, int myDim_edge2D, int * edges, int * edge_tri, real_type * fct_adf_h, real_type dt, real_type * area, bool iter_yn, real_type * fct_adf_v2, real_type * fct_adf_h2, real_type * hnode_new, real_type * del_ttf_advvert, real_type * del_ttf_advhoriz, real_type * hnode)
 {
     real_type flux;
     const real_type flux_eps = 1e-16;
@@ -454,6 +454,122 @@ void fct_ale(unsigned int myDim_nod2D, unsigned int eDim_nod2D, int * nLevels_no
                 fct_adf_h2[item] = (1.0 - ae) * fct_adf_h[item];
             }
             fct_adf_h[item] *= ae;
+        }
+    }
+    /*
+    if (iter_yn) then
+        !___________________________________________________________________________
+        ! c. Update the LO
+        ! Vertical
+        do n=1, myDim_nod2d
+            do nz=1,nlevels_nod2D(n)-1  
+                fct_LO(nz,n)=fct_LO(nz,n)+(fct_adf_v(nz,n)-fct_adf_v(nz+1,n))*dt/area(nz,n)/hnode_new(nz,n)
+            end do
+        end do
+        
+        ! Horizontal
+        do edge=1, myDim_edge2D
+            enodes(1:2)=edges(:,edge)
+            el=edge_tri(:,edge)
+            nl1=nlevels(el(1))-1
+            nl2=0
+            if (el(2)>0) nl2=nlevels(el(2))-1
+            do nz=1, max(nl1,nl2)
+                fct_LO(nz,enodes(1))=fct_LO(nz,enodes(1))+fct_adf_h(nz,edge)*dt/area(nz,enodes(1))/hnode_new(nz,enodes(1))
+                fct_LO(nz,enodes(2))=fct_LO(nz,enodes(2))-fct_adf_h(nz,edge)*dt/area(nz,enodes(2))/hnode_new(nz,enodes(2))
+            end do
+        end do
+        fct_adf_h=fct_adf_h2
+        fct_adf_v=fct_adf_v2
+        return !do the next iteration with fct_ale
+    end if
+
+    ! c. Update the solution
+    ! Vertical
+    do n=1, myDim_nod2d
+        do nz=1,nlevels_nod2D(n)-1  
+            del_ttf_advvert(nz,n)=del_ttf_advvert(nz,n)-ttf(nz,n)*hnode(nz,n)+fct_LO(nz,n)*hnode_new(nz,n) + &
+                                    (fct_adf_v(nz,n)-fct_adf_v(nz+1,n))*dt/area(nz,n)
+        end do
+    end do
+    
+    ! Horizontal
+    do edge=1, myDim_edge2D
+        enodes(1:2)=edges(:,edge)
+        el=edge_tri(:,edge)
+        nl1=nlevels(el(1))-1
+        nl2=0
+        if(el(2)>0) nl2=nlevels(el(2))-1
+        do nz=1, max(nl1,nl2)
+            del_ttf_advhoriz(nz,enodes(1))=del_ttf_advhoriz(nz,enodes(1))+fct_adf_h(nz,edge)*dt/area(nz,enodes(1))
+            del_ttf_advhoriz(nz,enodes(2))=del_ttf_advhoriz(nz,enodes(2))-fct_adf_h(nz,edge)*dt/area(nz,enodes(2))
+        end do
+    end do
+    */
+    if ( iter_yn )
+    {
+        for ( unsigned int node = 0; node <  myDim_nod2D; node++ )
+        {
+            for ( unsigned int node_z = 0; node_z < nLevels_nod2D[node] - 1; node_z++ )
+            {
+                unsigned int item = (node_z * TODO_INT) + node;
+
+                fct_LO[item] += (fct_adf_v[item] - fct_adf_v[((node_z + 1) * TODO_INT) + node]) * (dt / area[item] / hnode_new[item]);
+            }
+        }
+        for ( unsigned int edge = 0; edge < myDim_edge2D; edge++ )
+        {
+            unsigned int node_l1 =0, node_l2 = 0;
+            int edgeNodes [2] = {edges[edge], edges[2 * myDim_edge2D]};
+
+            node_l1 = nLevels[edge_tri[edge]] - 1;
+            if ( edge_tri[2 * edge] > 0 )
+            {
+                node_l2 = nLevels[edge_tri[2 * edge]] - 1;
+            }
+            for ( unsigned int node_z = 0; node_z < std::max(node_l1, node_l2); node_z++ )
+            {
+                unsigned int item = (node_z * TODO_INT) + edgeNodes[0];
+                
+                fct_LO[item] += fct_adf_h[(node_z * TODO_INT) + edge] * dt / area[item] / hnode_new[item];
+
+                item = (node_z * TODO_INT) + edgeNodes[1];
+                fct_LO[item] -= fct_adf_h[(node_z * TODO_INT) + edge] * dt / area[item] / hnode_new[item];
+            }
+        }
+        // TODO: need to properly swap pointers
+        fct_adf_h = fct_adf_h2;
+        fct_adf_v = fct_adf_v2;
+    }
+    else
+    {
+        for ( unsigned int node = 0; node < myDim_nod2D; node++ )
+        {
+            for ( unsigned int node_z = 0; node_z < nLevels_nod2D[node] - 1; node_z++ )
+            {
+                unsigned int item = (node_z * TODO_INT) + node;
+
+                del_ttf_advvert[item] -= (ttf[item] * hnode[item]) + (fct_LO[item] * hnode_new[item]) + ((fct_adf_v[item] - fct_adf_v[((node_z + 1) * TODO_INT) + node]) * (dt / area[item]));
+            }
+        }
+        for ( unsigned int edge = 0; edge < myDim_edge2D; edge++ )
+        {
+            unsigned int node_l1 =0, node_l2 = 0;
+            int edgeNodes [2] = {edges[edge], edges[2 * myDim_edge2D]};
+
+            node_l1 = nLevels[edge_tri[edge]] - 1;
+            if ( edge_tri[2 * edge] > 0 )
+            {
+                node_l2 = nLevels[edge_tri[2 * edge]] - 1;
+            }
+            for ( unsigned int node_z = 0; node_z < std::max(node_l1, node_l2); node_z++ )
+            {
+                unsigned int item = (node_z * TODO_INT) + edgeNodes[0];
+
+                del_ttf_advhoriz[item] += fct_adf_h[(node_z * TODO_INT) + edge] * (dt / area[item]);
+                item = (node_z * TODO_INT) + edgeNodes[1];
+                del_ttf_advhoriz[item] -= fct_adf_h[(node_z * TODO_INT) + edge] * (dt / area[item]);
+            }
         }
     }
 }
