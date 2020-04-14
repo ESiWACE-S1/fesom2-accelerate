@@ -382,3 +382,11 @@ All variables defined outside the scope of the subroutine need to be identified.
     - Two dimensional array, containing some iterative antidif. vertical flux.
 - fct_adf_h2 : *real array*
     - Two dimensional array, containing some iterative antidif. horizontal flux.
+- hnode_new : *real array*
+    - Two dimensional array, not sure about the content.
+- del_ttf_advvert : *real array*
+    - Vertical component of something.
+- del_ttf_advhoriz : *real array*
+    - Horizontal component of something.
+- hnode : *real array*
+    - Two dimensional array, not sure about the content.
