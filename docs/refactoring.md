@@ -372,3 +372,13 @@ All variables defined outside the scope of the subroutine need to be identified.
     - Two dimensional array, containing the two vertices of an edge.
 - edge_tri : *integer array*
     - Two dimensional array, containing the two vertices of an edge.
+- dt : *real*
+    - Constant
+- area : *real array*
+    - Two dimensional array containing some area.
+- iter_yn : *boolean*
+    - Switch to enable an iterative method to compute fct.
+- fct_adf_v2 : *real array*
+    - Two dimensional array, containing some iterative antidif. vertical flux.
+- fct_adf_h2 : *real array*
+    - Two dimensional array, containing some iterative antidif. horizontal flux.
