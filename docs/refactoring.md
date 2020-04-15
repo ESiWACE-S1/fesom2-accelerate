@@ -316,8 +316,6 @@ end subroutine fct_ale
 
 ### Data
 
-All variables defined outside the scope of the subroutine need to be identified.
-
 #### Nodes, elements, and edges
 - myDim_nod2D : *integer*
     - Used in multiple loops, it represents the beginning of some partition.
@@ -391,3 +389,66 @@ All variables defined outside the scope of the subroutine need to be identified.
     - Array containing the minimum temperature of vertical layers.
 - area : *real array*
     - Two dimensional array containing some area.
+
+
+## Subroutine stress2rhs
+
+### Source code
+
+```fortran
+subroutine stress2rhs(inv_areamass, ice_strength, mesh)
+! EVP implementation:
+! Computes the divergence of stress tensor and puts the result into the
+! rhs vectors 
+
+USE MOD_MESH
+USE o_PARAM
+USE i_PARAM
+USE i_THERM_PARAM
+USE g_PARSUP
+USE i_arrays
+
+IMPLICIT NONE
+REAL(kind=WP), intent(in) :: inv_areamass(myDim_nod2D), ice_strength(mydim_elem2D)
+INTEGER      :: n, el,  k
+REAL(kind=WP):: val3
+type(t_mesh), intent(in), target :: mesh
+
+#include "associate_mesh.h"
+
+val3=1/3.0_WP
+
+DO  n=1, myDim_nod2D
+    U_rhs_ice(n)=0.0_WP
+    V_rhs_ice(n)=0.0_WP
+END DO
+ 
+do el=1,myDim_elem2D
+    ! ===== Skip if ice is absent
+    if (ice_strength(el) > 0._WP) then
+        DO k=1,3
+            U_rhs_ice(elem2D_nodes(k,el)) = U_rhs_ice(elem2D_nodes(k,el)) &
+            - elem_area(el) * &
+                (sigma11(el)*gradient_sca(k,el) + sigma12(el)*gradient_sca(k+3,el) &
+                +sigma12(el)*val3*metric_factor(el))            !metrics
+            V_rhs_ice(elem2D_nodes(k,el)) = V_rhs_ice(elem2D_nodes(k,el)) & 
+                - elem_area(el) * &
+                (sigma12(el)*gradient_sca(k,el) + sigma22(el)*gradient_sca(k+3,el) &   
+                -sigma11(el)*val3*metric_factor(el))
+        END DO
+    endif
+end do 
+
+DO n=1, myDim_nod2D
+    if (inv_areamass(n) > 0._WP) then
+        U_rhs_ice(n) = U_rhs_ice(n)*inv_areamass(n) + rhs_a(n)
+        V_rhs_ice(n) = V_rhs_ice(n)*inv_areamass(n) + rhs_m(n)
+    else
+        U_rhs_ice(n) = 0._WP
+        V_rhs_ice(n) = 0._WP
+    endif
+END DO
+end subroutine stress2rhs
+```
+
+### Data
