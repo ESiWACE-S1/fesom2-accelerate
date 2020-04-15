@@ -573,3 +573,45 @@ void fct_ale(unsigned int myDim_nod2D, unsigned int eDim_nod2D, int * nLevels_no
         }
     }
 }
+
+void stress2rhs(unsigned int myDim_nod2D, unsigned int myDim_elem2D, unsigned int elem2D_nodes_size, real_type * U_rhs_ice, real_type * V_rhs_ice, real_type * ice_strength, unsigned int * elem2D_nodes, real_type * elem_area, real_type * sigma11, real_type * sigma12, real_type * sigma22, real_type * gradient_sca, real_type * metric_factor, real_type * inv_areamass, real_type * rhs_a, real_type * rhs_m)
+{
+    const unsigned int elementNodes = 3;
+    const unsigned int elementGradients = 6;
+    const real_type one_third = 1.0 / 3.0;
+
+    // Initialization
+    for ( unsigned int node = 0; node < myDim_nod2D; node++ )
+    {
+        U_rhs_ice[node] = 0.0;
+        V_rhs_ice[node] = 0.0;
+    }
+    for ( unsigned int element = 0; element < myDim_elem2D; element++ )
+    {
+        if ( ice_strength[element] > 0.0 )
+        {
+            for ( unsigned int nodeID = 0; nodeID < elementNodes; nodeID++ )
+            {
+                unsigned int node = elem2D_nodes[(nodeID * elem2D_nodes_size) + element];
+
+                U_rhs_ice[node] -= elem_area[element] * ((sigma11[element] * gradient_sca[(nodeID * elementGradients) + element]) + (sigma12[element] * gradient_sca[((nodeID + 3) * elementGradients) + element]) + (sigma12[element] * one_third * metric_factor[element]));
+                V_rhs_ice[node] -= elem_area[element] * ((sigma12[element] * gradient_sca[(nodeID * elementGradients) + element]) + (sigma22[element] * gradient_sca[((nodeID + 3) * elementGradients) + element]) - (sigma11[element] * one_third * metric_factor[element]));
+            }
+        }
+    }
+    // Update solution
+    for ( unsigned int node = 0; node < myDim_nod2D; node++ )
+    {
+        if ( inv_areamass[node] > 0.0 )
+        {
+            U_rhs_ice[node] = (U_rhs_ice[node] * inv_areamass[node]) + rhs_a[node];
+            V_rhs_ice[node] = (V_rhs_ice[node] * inv_areamass[node]) + rhs_m[node]; 
+        }
+        else
+        {
+            U_rhs_ice[node] = 0.0;
+            V_rhs_ice[node] = 0.0;
+        }
+        
+    }
+}
