@@ -452,3 +452,41 @@ end subroutine stress2rhs
 ```
 
 ### Data
+
+#### Nodes, elements, and edges
+- myDim_nod2D : *integer*
+    - Used in multiple loops, it seems to represent the number of nodes.
+- myDim_elem2D : *integer*
+    - Used in multiple loops, it seems to represent the number of elements.
+- elem2D_nodes : *integer array*
+    - Two dimensional array, containing the nodes of any given element; size is *3 \* myDim_elem2D*.
+- elem_area : *real array*
+    - One dimensional array, containing the area of an element; size is *myDim_elem2D*.
+
+#### Ice
+- ice_strength : *real array*
+    - One dimensional array, size is *myDim_elem2D*.
+
+#### Solution
+- U_rhs_ice : *real array*
+    - One dimensional array, size is *myDim_nod2D + eDim_nod2D*.
+- V_rhs_ice : *real array*
+    - One dimensional array, size is *myDim_nod2D + eDim_nod2D*.
+
+#### Arrays
+- sigma11 : *real array*
+    - One dimensional array, size is *myDim_elem2D*.
+- sigma12 : *real array*
+    - One dimensional array, size is *myDim_elem2D*.
+- sigma22 : *real array*
+    - One dimensional array, size is *myDim_elem2D*.
+- gradient_sca : *real array*
+    - Two dimensional array, containing the coefficients to compute gradient of scalars; size is *6 \* myDim_elem2D*.
+- metric_factor : *real array*
+    - One dimensional array, size is *myDim_elem2D*.
+- inv_areamass : *real array*
+    - One dimensional array, size is *myDim_nod2D*.
+- rhs_a : *real array*
+    - One dimensional array, size is *myDim_nod2D*.
+- rhs_m : *real array*
+    - One dimensional array, size is *myDim_nod2D*.
