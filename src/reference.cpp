@@ -7,7 +7,7 @@ const real_type TODO_REAL = 0.0;
 /**
  3D Flux Corrected Transport scheme
 */
-void fct_ale(unsigned int myDim_nod2D, unsigned int eDim_nod2D, int * nLevels_nod2D, real_type * fct_ttf_max, real_type * fct_ttf_min, real_type * fct_LO, real_type * ttf, unsigned int myDim_elem2D, int * nLevels, real_type * UV_rhs, int nl, int vLimit, real_type * tvert_max, real_type * tvert_min, real_type * fct_plus, real_type * fct_minus, real_type * fct_adf_v, int myDim_edge2D, int * edges, int * edge_tri, real_type * fct_adf_h, real_type dt, real_type * area, bool iter_yn, real_type * fct_adf_v2, real_type * fct_adf_h2, real_type * hnode_new, real_type * del_ttf_advvert, real_type * del_ttf_advhoriz, real_type * hnode)
+void fct_ale(int myDim_nod2D, int eDim_nod2D, int * nLevels_nod2D, real_type * fct_ttf_max, real_type * fct_ttf_min, real_type * fct_LO, real_type * ttf, int myDim_elem2D, int * nLevels, real_type * UV_rhs, int nl, int vLimit, real_type * tvert_max, real_type * tvert_min, real_type * fct_plus, real_type * fct_minus, real_type * fct_adf_v, int myDim_edge2D, int * edges, int * edge_tri, real_type * fct_adf_h, real_type dt, real_type * area, bool iter_yn, real_type * fct_adf_v2, real_type * fct_adf_h2, real_type * hnode_new, real_type * del_ttf_advvert, real_type * del_ttf_advhoriz, real_type * hnode)
 {
     real_type flux;
     const real_type flux_eps = 1e-16;
@@ -574,7 +574,7 @@ void fct_ale(unsigned int myDim_nod2D, unsigned int eDim_nod2D, int * nLevels_no
     }
 }
 
-void stress2rhs(unsigned int myDim_nod2D, unsigned int myDim_elem2D, unsigned int elem2D_nodes_size, real_type * U_rhs_ice, real_type * V_rhs_ice, real_type * ice_strength, unsigned int * elem2D_nodes, real_type * elem_area, real_type * sigma11, real_type * sigma12, real_type * sigma22, real_type * gradient_sca, real_type * metric_factor, real_type * inv_areamass, real_type * rhs_a, real_type * rhs_m)
+void stress2rhs(int myDim_nod2D, int myDim_elem2D, int elem2D_nodes_size, real_type * U_rhs_ice, real_type * V_rhs_ice, real_type * ice_strength, int * elem2D_nodes, real_type * elem_area, real_type * sigma11, real_type * sigma12, real_type * sigma22, real_type * gradient_sca, real_type * metric_factor, real_type * inv_areamass, real_type * rhs_a, real_type * rhs_m)
 {
     const unsigned int elementNodes = 3;
     const unsigned int elementGradients = 6;
