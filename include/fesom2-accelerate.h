@@ -83,3 +83,17 @@ inline bool transferToHost(gpuMemory & buffer, bool synchronous = true, cudaStre
     
     return errorHandling(status);
 }
+
+
+/**
+ CPU reference implementation of step a1 of FCT_ALE.
+ This step computes the maximum and minimum between the old solution and the updated low-order solution per node.
+
+ @param nodes The number of nodes
+ @param nLevels_nod2D Array containing the number of horizontal levels per node
+ @param fct_ttf_max Computed maximum
+ @param fct_ttf_min Computed minimum
+ @param fct_low_order New low order solution of fct
+ @param ttf Old solution
+*/
+void fct_ale_a1_reference(int nodes, int * nLevels_nod2D, real_type * fct_ttf_max, real_type * fct_ttf_min,  real_type * fct_low_order, real_type * ttf);

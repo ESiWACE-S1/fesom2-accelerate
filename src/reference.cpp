@@ -12,16 +12,9 @@ void fct_ale(int myDim_nod2D, int eDim_nod2D, int * nLevels_nod2D, real_type * f
     real_type flux;
     const real_type flux_eps = 1e-16;
     
-    for ( unsigned int node2D = 0; node2D < myDim_nod2D + eDim_nod2D; node2D++ )
-    {
-        for ( unsigned int node2D_z = 0; node2D_z < nLevels_nod2D[node2D] - 1; node2D_z++ )
-        {
-            unsigned int item = (node2D_z * TODO_INT) + node2D;
-
-            fct_ttf_max[item] = std::max(fct_LO[item], ttf[item]);
-            fct_ttf_min[item] = std::min(fct_LO[item], ttf[item]);
-        }
-    }
+    // a1: max, min between old solution and updated low-order solution per node
+    fct_ale_a1_reference(myDim_nod2D + eDim_nod2D, nLevels_nod2D, fct_ttf_max, fct_ttf_min, fct_LO, ttf);
+    // 
     for ( unsigned int element = 0; element < myDim_elem2D; element++ )
     {
         for ( unsigned int element_z = 0; element_z < nLevels[element] - 1; element_z++ )
@@ -300,6 +293,20 @@ void fct_ale(int myDim_nod2D, int eDim_nod2D, int * nLevels_nod2D, real_type * f
                 item = (node_z * TODO_INT) + edgeNodes[1];
                 del_ttf_advhoriz[item] -= fct_adf_h[(node_z * TODO_INT) + edge] * (dt / area[item]);
             }
+        }
+    }
+}
+
+void fct_ale_a1_reference(int nodes, int * nLevels_nod2D, real_type * fct_ttf_max, real_type * fct_ttf_min,  real_type * fct_low_order, real_type * ttf)
+{
+    for ( unsigned int node2D = 0; node2D < nodes; node2D++ )
+    {
+        for ( unsigned int node2D_z = 0; node2D_z < nLevels_nod2D[node2D] - 1; node2D_z++ )
+        {
+            unsigned int item = (node2D_z * nodes) + node2D;
+
+            fct_ttf_max[item] = std::max(fct_low_order[item], ttf[item]);
+            fct_ttf_min[item] = std::min(fct_low_order[item], ttf[item]);
         }
     }
 }
