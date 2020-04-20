@@ -324,7 +324,7 @@ end subroutine fct_ale
 - myDim_elem2D : *integer*
     - Used in multiple loops, it represent the index of some element.
 - elem2D_nodes : *integer array*
-    - Two dimensional array, not sure about the content yet.
+    - Two dimensional array, contains the list of the three nodes of an element.
 - hnode : *real array*
     - Two dimensional array, not sure about the content.
 - hnode_new : *real array*
@@ -342,7 +342,7 @@ end subroutine fct_ale
 - nlevels_nod2D : *integer array*
     - Array containing the size of some local dimension.
 - nl : *integer pointer*
-    - Points to a single integer value in T_MESH, probably the number of vertical layers.
+    - Points to a single integer value in T_MESH, representing the maximum number of vertical layers.
 
 #### FCT
 - fct_ttf_max : *real array*
