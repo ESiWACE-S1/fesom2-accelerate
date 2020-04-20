@@ -346,9 +346,9 @@ end subroutine fct_ale
 
 #### FCT
 - fct_ttf_max : *real array*
-    - Two dimensional array, containing the maximum of some previous step.
+    - Two dimensional array, containing the maximum of two previous solutions.
 - fct_ttf_min : *real array*
-    - Two dimensional array, containing the minimum of some previous step.
+    - Two dimensional array, containing the minimum of two previous solutions.
 - fct_LO : *real array*
     - Two dimensional array, containing the low order solution of fct.
 - fct_plus : *real array*
