@@ -84,16 +84,30 @@ inline bool transferToHost(gpuMemory & buffer, bool synchronous = true, cudaStre
     return errorHandling(status);
 }
 
-
 /**
  CPU reference implementation of step a1 of FCT_ALE.
  This step computes the maximum and minimum between the old solution and the updated low-order solution per node.
 
- @param nodes The number of nodes
- @param nLevels_nod2D Array containing the number of horizontal levels per node
+ @param nNodes The number of nodes
+ @param nLevels_nod2D Array containing the number of vertical levels per node
  @param fct_ttf_max Computed maximum
  @param fct_ttf_min Computed minimum
  @param fct_low_order New low order solution of fct
  @param ttf Old solution
 */
-void fct_ale_a1_reference(int nodes, int * nLevels_nod2D, real_type * fct_ttf_max, real_type * fct_ttf_min,  real_type * fct_low_order, real_type * ttf);
+void fct_ale_a1_reference(int nNodes, int * nLevels_nod2D, real_type * fct_ttf_max, real_type * fct_ttf_min,  real_type * fct_low_order, real_type * ttf);
+
+/**
+ CPU reference implementation of step a2 of FCT_ALE.
+ Computing maximum and minimum bounds per element.
+
+ @param nElement Number of elements
+ @param nNodes Number of nodes
+ @param maxLevels Maximum number of levels per node
+ @param nLevels Array containing the number of vertical levels per element
+ @param UV_rhs Three dimensional array containing bound for each element
+ @param elem2D_nodes Array containing the three nodes of an element
+ @param fct_ttf_max Previously computed maximum
+ @param fct_ttf_min Previously computed minimum
+*/
+void fct_ale_a2_reference(int nElements, int nNodes, int maxLevels, int * nLevels, real_type * UV_rhs, int * elem2D_nodes, real_type * fct_ttf_max, real_type * fct_ttf_min);
