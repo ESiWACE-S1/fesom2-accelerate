@@ -2,11 +2,13 @@
 #include <cstdlib>
 #include <iostream>
 #include <limits>
+#ifdef __CUDACC__
 #include <driver_types.h>
 #include <cuda_runtime_api.h>
-
+#endif
 using real_type = double;
 
+#ifdef __CUDACC__
 /**
  A structure to map GPU and host memory.
 */
@@ -83,7 +85,9 @@ inline bool transferToHost(gpuMemory & buffer, bool synchronous = true, cudaStre
     
     return errorHandling(status);
 }
+#endif
 
+extern "C"{
 /**
  CPU reference implementation of step a1 of FCT_ALE.
  This step computes the maximum and minimum between the old solution and the updated low-order solution per node.
@@ -95,7 +99,7 @@ inline bool transferToHost(gpuMemory & buffer, bool synchronous = true, cudaStre
  @param fct_low_order New low order solution of fct
  @param ttf Old solution
 */
-void fct_ale_a1_reference(int nNodes, int * nLevels_nod2D, real_type * fct_ttf_max, real_type * fct_ttf_min,  real_type * fct_low_order, real_type * ttf);
+void fct_ale_a1_reference_(int * nNodes, int * nLevels_nod2D, real_type * fct_ttf_max, real_type * fct_ttf_min,  real_type * fct_low_order, real_type * ttf);
 
 /**
  CPU reference implementation of step a2 of FCT_ALE.
@@ -110,4 +114,5 @@ void fct_ale_a1_reference(int nNodes, int * nLevels_nod2D, real_type * fct_ttf_m
  @param fct_ttf_max Previously computed maximum
  @param fct_ttf_min Previously computed minimum
 */
-void fct_ale_a2_reference(int nElements, int nNodes, int maxLevels, int * nLevels, real_type * UV_rhs, int * elem2D_nodes, real_type * fct_ttf_max, real_type * fct_ttf_min);
+void fct_ale_a2_reference_(int * nElements, int * nNodes, int * maxLevels, int * nLevels, real_type * UV_rhs, int * elem2D_nodes, real_type * fct_ttf_max, real_type * fct_ttf_min);
+}
