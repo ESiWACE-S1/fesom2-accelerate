@@ -40,6 +40,16 @@ inline bool errorHandling(cudaError_t error)
 }
 
 /**
+ Allocate memory on the GPU.
+ 
+ @param hostMemory Pointer to host memory
+ @param size The size, in bytes, of allocated host memory
+
+ @return A pointer to struct gpuMemory containing the allocated device pointer
+*/
+struct gpuMemory * allocate(void * hostMemory, std::size_t size);
+
+/**
  Function to transfer data from the host to the device.
 
  @param buffer A reference to the memory
@@ -100,6 +110,21 @@ extern "C"{
  @param ttf Old solution
 */
 void fct_ale_a1_reference_(int * nNodes, int * nLevels_nod2D, real_type * fct_ttf_max, real_type * fct_ttf_min,  real_type * fct_low_order, real_type * ttf);
+
+/**
+ GPU CUDA implementation of step a1 of FCT_ALE.
+ This step computes the maximum and minimum between the old solution and the updated low-order solution per node.
+
+ @param nNodes The number of nodes
+ @param nLevels_nod2D Array containing the number of vertical levels per node
+ @param fct_ttf_max Computed maximum
+ @param fct_ttf_min Computed minimum
+ @param fct_low_order New low order solution of fct
+ @param ttf Old solution
+ @param synchronous A boolean value to control synchronization
+ @param stream The CUDA stream associated with the transfer
+*/
+void fct_ale_a1_reference(int nNodes, struct gpuMemory * nLevels_nod2D, struct gpuMemory * fct_ttf_max, struct gpuMemory * fct_ttf_min,  struct gpuMemory * fct_low_order, struct gpuMemory * ttf, bool synchronous = true, cudaStream_t stream = (cudaStream_t) 0);
 
 /**
  CPU reference implementation of step a2 of FCT_ALE.

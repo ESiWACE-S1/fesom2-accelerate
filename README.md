@@ -5,7 +5,8 @@ Simple C routines to offer native GPU acceleration to [FESOM2](https://github.co
 
 # Dependencies
 
-- CUDA
+- [CUDA](https://developer.nvidia.com/cuda-downloads)
+- [kernel_tuner](https://github.com/benvanwerkhoven/kernel_tuner)
 
 # License
 
