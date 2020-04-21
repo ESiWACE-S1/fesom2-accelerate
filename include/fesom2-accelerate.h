@@ -5,6 +5,7 @@
 #include <driver_types.h>
 #include <cuda_runtime_api.h>
 
+
 using real_type = double;
 
 /**
@@ -36,6 +37,16 @@ inline bool errorHandling(cudaError_t error)
     }
     return true;
 }
+
+/**
+ Allocate memory on the GPU.
+ 
+ @param hostMemory Pointer to host memory
+ @param size The size, in bytes, of allocated host memory
+
+ @return A pointer to struct gpuMemory containing the allocated device pointer
+*/
+struct gpuMemory * allocate(void * hostMemory, std::size_t size);
 
 /**
  Function to transfer data from the host to the device.
