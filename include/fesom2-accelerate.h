@@ -124,7 +124,7 @@ void fct_ale_a1_reference_(int * nNodes, int * nLevels_nod2D, real_type * fct_tt
  @param synchronous A boolean value to control synchronization
  @param stream The CUDA stream associated with the transfer
 */
-void fct_ale_a1_reference(int nNodes, struct gpuMemory * nLevels_nod2D, struct gpuMemory * fct_ttf_max, struct gpuMemory * fct_ttf_min,  struct gpuMemory * fct_low_order, struct gpuMemory * ttf, bool synchronous = true, cudaStream_t stream = (cudaStream_t) 0);
+void fct_ale_a1_accelerated(int nNodes, struct gpuMemory * nLevels_nod2D, struct gpuMemory * fct_ttf_max, struct gpuMemory * fct_ttf_min,  struct gpuMemory * fct_low_order, struct gpuMemory * ttf, bool synchronous = true, cudaStream_t stream = (cudaStream_t) 0);
 
 /**
  CPU reference implementation of step a2 of FCT_ALE.
