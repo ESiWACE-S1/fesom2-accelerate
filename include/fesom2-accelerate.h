@@ -94,12 +94,13 @@ extern "C"{
 
  @param nNodes The number of nodes
  @param nLevels_nod2D Array containing the number of vertical levels per node
+ @param maxLevels_ptr Maximum number of levels per node
  @param fct_ttf_max Computed maximum
  @param fct_ttf_min Computed minimum
  @param fct_low_order New low order solution of fct
  @param ttf Old solution
 */
-void fct_ale_a1_reference_(int * nNodes, int * nLevels_nod2D, real_type * fct_ttf_max, real_type * fct_ttf_min,  real_type * fct_low_order, real_type * ttf);
+void fct_ale_a1_reference_(int * nNodes, int * nLevels_nod2D, int * maxLevels_ptr, real_type * fct_ttf_max, real_type * fct_ttf_min,  real_type * fct_low_order, real_type * ttf);
 
 /**
  CPU reference implementation of step a2 of FCT_ALE.
@@ -107,7 +108,7 @@ void fct_ale_a1_reference_(int * nNodes, int * nLevels_nod2D, real_type * fct_tt
 
  @param nElement Number of elements
  @param nNodes Number of nodes
- @param maxLevels Maximum number of levels per node
+ @param maxLevels_ptr Maximum number of levels per node
  @param nLevels Array containing the number of vertical levels per element
  @param UV_rhs Three dimensional array containing bound for each element
  @param elem2D_nodes Array containing the three nodes of an element
