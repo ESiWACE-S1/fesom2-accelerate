@@ -14,7 +14,7 @@ void fct_ale(int myDim_nod2D, int eDim_nod2D, int * nLevels_nod2D, real_type * f
     
     // a1: max, min between old solution and updated low-order solution per node
     int nod2D = myDim_nod2D + eDim_nod2D;
-    fct_ale_a1_reference_(&nod2D, nLevels_nod2D, fct_ttf_max, fct_ttf_min, fct_LO, ttf);
+    fct_ale_a1_reference_(&nod2D, nLevels_nod2D, &nl, fct_ttf_max, fct_ttf_min, fct_LO, ttf);
     // a2: Admissible increments on elements
     // (only layers below the first and above the last layer)
     // look for max, min bounds for each element --> UV_rhs here auxilary array
@@ -281,13 +281,13 @@ void fct_ale(int myDim_nod2D, int eDim_nod2D, int * nLevels_nod2D, real_type * f
     }
 }
 
-void fct_ale_a1_reference_(int * nNodes, int * nLevels_nod2D, real_type * fct_ttf_max, real_type * fct_ttf_min,  real_type * fct_low_order, real_type * ttf)
+void fct_ale_a1_reference_(int * nNodes, int * nLevels_nod2D, int * maxLevels_ptr, real_type * fct_ttf_max, real_type * fct_ttf_min,  real_type * fct_low_order, real_type * ttf)
 {
     for ( unsigned int node2D = 0; node2D < *nNodes; node2D++ )
     {
         for ( unsigned int node2D_z = 0; node2D_z < nLevels_nod2D[node2D] - 1; node2D_z++ )
         {
-            unsigned int item = (node2D_z * (*nNodes)) + node2D;
+            unsigned int item = (node2D * (*maxLevels_ptr)) + node2D_z;
 
             fct_ttf_max[item] = std::max(fct_low_order[item], ttf[item]);
             fct_ttf_min[item] = std::min(fct_low_order[item], ttf[item]);
