@@ -18,7 +18,7 @@ def generate_code(tuning_parameters):
         "fct_ttf_min[item] = fmin(fct_low_order_item, ttf_item);\n" \
         "}\n" \
         "}\n"
-    code = code.replace("<%INT_TYPE%>", tuning_parameters["int_type"])
+    code = code.replace("<%INT_TYPE%>", tuning_parameters["int_type"].replace("_", " "))
     code = code.replace("<%REAL_TYPE%>", tuning_parameters["real_type"])
     code = code.replace("<%MAX_LEVELS%>", tuning_parameters["max_levels"])
     return code
@@ -29,7 +29,7 @@ def tune(nodes, max_levels, real_type):
     tuning_parameters = dict()
     tuning_parameters["max_levels"] = [str(max_levels)]
     tuning_parameters["block_size_x"] = [32 * i for i in range(1, 33)]
-    tuning_parameters["int_type"] = ["unsigned int", "int"]
+    tuning_parameters["int_type"] = ["unsigned_int", "int"]
     tuning_parameters["real_type"] = [real_type]
     # Memory allocation and initialization
     if real_type == "float":
