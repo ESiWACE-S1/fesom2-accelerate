@@ -41,5 +41,5 @@ def tune(nodes, max_levels, real_type, numpy_real_type):
         levels[node] = numpy.random.randint(0, max_levels)
     arguments = [fct_low_order, ttf, levels, fct_ttf_max, fct_ttf_min]
     # Tuning
-    results = tune_kernel("fct_ale_a1", generate_code, nodes * max_levels, arguments, tuning_parameters, verbose=True)
+    results = tune_kernel("fct_ale_a1", generate_code, nodes * max_levels, arguments, tuning_parameters, verbose=True, lang="CUDA")
     return results
