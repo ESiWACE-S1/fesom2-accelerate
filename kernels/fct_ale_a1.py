@@ -7,16 +7,14 @@ def generate_code(tuning_parameters):
     code = \
         "__global__ void fct_ale_a1(const <%REAL_TYPE%> * __restrict__ fct_low_order, const <%REAL_TYPE%> * __restrict__ ttf, const int * __restrict__ nLevels, <%REAL_TYPE%> * fct_ttf_max, <%REAL_TYPE%> * fct_ttf_min)\n" \
         "{\n" \
-        "<%INT_TYPE%> item = (blockIdx.x * <%MAX_LEVELS%>) + threadIdx.x;\n" \
-        "<%REAL_TYPE%> fct_low_order_item = 0;\n" \
-        "<%REAL_TYPE%> ttf_item = 0;\n" \
+        "const <%INT_TYPE%> node = (blockIdx.x * <%MAX_LEVELS%>);\n" \
         "\n" \
-        "if ( threadIdx.x < nLevels[blockIdx.x] )\n" \
+        "for ( <%INT_TYPE%> level = threadIdx.x; level < nLevels[blockIdx.x]; level += blockDim.x )\n" \
         "{\n" \
-        "fct_low_order_item = fct_low_order[item];\n" \
-        "ttf_item = ttf[item];\n" \
-        "fct_ttf_max[item] = fmax(fct_low_order_item, ttf_item);\n" \
-        "fct_ttf_min[item] = fmin(fct_low_order_item, ttf_item);\n" \
+        "const <%REAL_TYPE%> fct_low_order_item = fct_low_order[node + level];\n" \
+        "const <%REAL_TYPE%> ttf_item = ttf[node + level];\n" \
+        "fct_ttf_max[node + level] = fmax(fct_low_order_item, ttf_item);\n" \
+        "fct_ttf_min[node + level] = fmin(fct_low_order_item, ttf_item);\n" \
         "}\n" \
         "}\n"
     code = code.replace("<%INT_TYPE%>", tuning_parameters["int_type"].replace("_", " "))
