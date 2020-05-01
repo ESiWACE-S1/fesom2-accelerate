@@ -71,7 +71,7 @@ def parse_command_line():
     parser.add_argument("--nodes", help="The number of nodes.", type=int, required=True)
     parser.add_argument("--max_levels", help="The maximum number of vertical levels for nodes.", type=int, required=True)
     parser.add_argument("--real_type", help="The floating point type to use.", choices=["float", "double"], type=str, required=True)
-    return parser.parse_arg()
+    return parser.parse_args()
 
 if __name__ == "__main__":
     command_line = parse_command_line()
