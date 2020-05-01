@@ -97,7 +97,8 @@ inline bool transferToHost(gpuMemory & buffer, bool synchronous = true, cudaStre
 }
 #endif
 
-extern "C"{
+extern "C"
+{
 /**
  CPU reference implementation of step a1 of FCT_ALE.
  This step computes the maximum and minimum between the old solution and the updated low-order solution per node.
