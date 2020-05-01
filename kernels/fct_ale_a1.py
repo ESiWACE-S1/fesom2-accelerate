@@ -61,7 +61,7 @@ def tune(nodes, max_levels, real_type):
     reference(nodes, levels, max_levels, fct_low_order, ttf, fct_ttf_max_control, fct_ttf_min_control)
     arguments_control = [None, None, None, fct_ttf_max_control, fct_ttf_min_control]
     # Tuning
-    results = tune_kernel("fct_ale_a1", generate_code, "{} * block_size_x".format(nodes), arguments, tuning_parameters, verbose=True, lang="CUDA", answer=arguments_control, verify=verify)
+    results, environment = tune_kernel("fct_ale_a1", generate_code, "{} * block_size_x".format(nodes), arguments, tuning_parameters, lang="CUDA", answer=arguments_control, verify=verify, quiet=True)
     return results
 
 def parse_command_line():
@@ -74,3 +74,6 @@ def parse_command_line():
 if __name__ == "__main__":
     command_line = parse_command_line()
     results = tune(command_line.nodes, command_line.max_levels, command_line.real_type)
+    best_configuration = min(results, key=lambda x : x["time"])
+    print("Block size X: {}".format(best_configuration["block_size_x"]))
+    print(generate_code(best_configuration))
