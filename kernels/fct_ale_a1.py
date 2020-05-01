@@ -28,8 +28,8 @@ def reference(nodes, levels, max_levels, fct_low_order, ttf, fct_ttf_max, fct_tt
     for node in range(0, nodes):
         for level in range(0, levels[node]):
             item = (node * max_levels) + level
-            fct_ttf_max[item] = numpy.max(fct_low_order[item], ttf[item])
-            fct_ttf_min[item] = numpy.min(fct_low_order[item], ttf[item])
+            fct_ttf_max[item] = max(fct_low_order[item], ttf[item])
+            fct_ttf_min[item] = min(fct_low_order[item], ttf[item])
 
 def verify(control_data, data, atol=None):
     return numpy.allclose(control_data, data, atol)
