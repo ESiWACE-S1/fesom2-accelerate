@@ -23,6 +23,16 @@ def generate_code(tuning_parameters):
     code = code.replace("<%MAX_LEVELS%>", tuning_parameters["max_levels"])
     return code
 
+def reference(nodes, levels, max_levels, fct_low_order, ttf, fct_ttf_max, fct_ttf_min):
+    for node in range(0, nodes):
+        for level in range(0, levels[node]):
+            item = (node * max_levels) + level
+            fct_ttf_max[item] = numpy.max(fct_low_order[item], ttf[item])
+            fct_ttf_min[item] = numpy.min(fct_low_order[item], ttf[item])
+
+def verify(control_data, data, atol=None):
+    return numpy.allclose(control_data, data, atol)
+
 def tune(nodes, max_levels, real_type):
     numpy_real_type = None
     # Tuning and code generation parameters
@@ -42,10 +52,15 @@ def tune(nodes, max_levels, real_type):
     ttf = numpy.random.randn(nodes * max_levels).astype(numpy_real_type)
     fct_ttf_max = numpy.zeros(nodes * max_levels)
     fct_ttf_min = numpy.zeros_like(fct_ttf_max)
+    fct_ttf_max_control = numpy.zeros_like(fct_ttf_max)
+    fct_ttf_min_control = numpy.zeros_like(fct_ttf_min)
     levels = numpy.zeros(nodes).astype(numpy.int32)
     for node in range(0, nodes):
         levels[node] = numpy.random.randint(0, max_levels)
     arguments = [fct_low_order, ttf, levels, fct_ttf_max, fct_ttf_min]
+    # Reference
+    reference(nodes, levels, max_levels, fct_low_order, ttf, fct_ttf_max_control, fct_ttf_min_control)
+    arguments_control = [None, None, None, fct_ttf_max_control, fct_ttf_min_control]
     # Tuning
-    results = tune_kernel("fct_ale_a1", generate_code, nodes * max_levels, arguments, tuning_parameters, verbose=True, lang="CUDA")
+    results = tune_kernel("fct_ale_a1", generate_code, nodes * max_levels, arguments, tuning_parameters, verbose=True, lang="CUDA", answer=arguments_control, verify=verify)
     return results
