@@ -9,17 +9,30 @@ def generate_code(tuning_parameters):
         "{\n" \
         "const <%INT_TYPE%> node = (blockIdx.x * <%MAX_LEVELS%>);\n" \
         "\n" \
-        "for ( <%INT_TYPE%> level = threadIdx.x; level < nLevels[blockIdx.x]; level += blockDim.x )\n" \
+        "for ( <%INT_TYPE%> level = threadIdx.x; level < nLevels[blockIdx.x]; level += <%BLOCK_SIZE%> )\n" \
         "{\n" \
-        "const <%REAL_TYPE%> fct_low_order_item = fct_low_order[node + level];\n" \
-        "const <%REAL_TYPE%> ttf_item = ttf[node + level];\n" \
-        "fct_ttf_max[node + level] = fmax(fct_low_order_item, ttf_item);\n" \
-        "fct_ttf_min[node + level] = fmin(fct_low_order_item, ttf_item);\n" \
+        "<%REAL_TYPE%> fct_low_order_item = 0;\n" \
+        "<%REAL_TYPE%> ttf_item = 0;\n" \
+        "<%COMPUTE_BLOCK%>\n" \
         "}\n" \
         "}\n"
+    compute_block = "fct_low_order_item = fct_low_order[node + level + <%OFFSET%>];\n" \
+        "ttf_item = ttf[node + level + <%OFFSET%>];\n" \
+        "fct_ttf_max[node + level + <%OFFSET%>] = fmax(fct_low_order_item, ttf_item);\n" \
+        "fct_ttf_min[node + level + <%OFFSET%>] = fmin(fct_low_order_item, ttf_item);\n"
     code = code.replace("<%INT_TYPE%>", tuning_parameters["int_type"].replace("_", " "))
     code = code.replace("<%REAL_TYPE%>", tuning_parameters["real_type"])
     code = code.replace("<%MAX_LEVELS%>", tuning_parameters["max_levels"])
+    if tuning_parameters["tiling_x"] > 1:
+        code = code.replace("<%BLOCK_SIZE%>", tuning_parameters["block_size_x"] * tuning_parameters["tiling_x"])
+    else:
+        code = code.replace("<%BLOCK_SIZE%>", tuning_parameters["block_size_x"])
+    compute = str()
+    for tile in range(0, tuning_parameters["tiling_x"]):
+        if tile == 0:
+            compute = compute + compute_block.replace(" + <%OFFSET%>", "")
+        else:
+            compute = compute + compute_block.replace(" + <%OFFSET%>", tuning_parameters["block_size_x"] * tile)
     return code
 
 def reference(nodes, levels, max_levels, fct_low_order, ttf, fct_ttf_max, fct_ttf_min):
@@ -32,14 +45,17 @@ def reference(nodes, levels, max_levels, fct_low_order, ttf, fct_ttf_max, fct_tt
 def verify(control_data, data, atol=None):
     return numpy.allclose(control_data, data, atol)
 
-def tune(nodes, max_levels, real_type):
+def tune(nodes, max_levels, max_tile, real_type):
     numpy_real_type = None
     # Tuning and code generation parameters
     tuning_parameters = dict()
-    tuning_parameters["max_levels"] = [str(max_levels)]
-    tuning_parameters["block_size_x"] = [32 * i for i in range(1, 33)]
     tuning_parameters["int_type"] = ["unsigned_int", "int"]
     tuning_parameters["real_type"] = [real_type]
+    tuning_parameters["max_levels"] = [str(max_levels)]
+    tuning_parameters["block_size_x"] = [32 * i for i in range(1, 33)]
+    tuning_parameters["tiling_x"] = [i for i in range(1, max_tile)]
+    constraints = list()
+    constraints.append("block_size_x * tiling_x <= max_levels")
     # Memory allocation and initialization
     if real_type == "float":
         numpy_real_type = numpy.float32
@@ -61,19 +77,20 @@ def tune(nodes, max_levels, real_type):
     reference(nodes, levels, max_levels, fct_low_order, ttf, fct_ttf_max_control, fct_ttf_min_control)
     arguments_control = [None, None, None, fct_ttf_max_control, fct_ttf_min_control]
     # Tuning
-    results, environment = tune_kernel("fct_ale_a1", generate_code, "{} * block_size_x".format(nodes), arguments, tuning_parameters, lang="CUDA", answer=arguments_control, verify=verify, quiet=True)
+    results, environment = tune_kernel("fct_ale_a1", generate_code, "{} * block_size_x".format(nodes), arguments, tuning_parameters, lang="CUDA", answer=arguments_control, verify=verify, restrictions=constraints, quiet=True)
     return results
 
 def parse_command_line():
     parser = argparse.ArgumentParser(description="FESOM2 FCT ALE A1")
     parser.add_argument("--nodes", help="The number of nodes.", type=int, required=True)
     parser.add_argument("--max_levels", help="The maximum number of vertical levels for nodes.", type=int, required=True)
+    parser.add_argument("--max_tile", help="The maximum level of tiling.", type=int, required=True)
     parser.add_argument("--real_type", help="The floating point type to use.", choices=["float", "double"], type=str, required=True)
     return parser.parse_args()
 
 if __name__ == "__main__":
     command_line = parse_command_line()
-    results = tune(command_line.nodes, command_line.max_levels, command_line.real_type)
+    results = tune(command_line.nodes, command_line.max_levels, command_line.max_tile, command_line.real_type)
     best_configuration = min(results, key=lambda x : x["time"])
     print("Block size X: {}".format(best_configuration["block_size_x"]))
     print(generate_code(best_configuration))
