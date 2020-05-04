@@ -85,7 +85,7 @@ def parse_command_line():
     parser = argparse.ArgumentParser(description="FESOM2 FCT ALE A1")
     parser.add_argument("--nodes", help="The number of nodes.", type=int, required=True)
     parser.add_argument("--max_levels", help="The maximum number of vertical levels for nodes.", type=int, required=True)
-    parser.add_argument("--max_tile", help="The maximum level of tiling.", type=int, required=True)
+    parser.add_argument("--max_tile", help="The maximum level of tiling.", type=int, default=2)
     parser.add_argument("--real_type", help="The floating point type to use.", choices=["float", "double"], type=str, required=True)
     return parser.parse_args()
 
