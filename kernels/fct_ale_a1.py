@@ -32,7 +32,8 @@ def generate_code(tuning_parameters):
         if tile == 0:
             compute = compute + compute_block.replace(" + <%OFFSET%>", "")
         else:
-            compute = compute + compute_block.replace("<%OFFSET%>", str(tuning_parameters["block_size_x"] * tile))
+            offset = tuning_parameters["block_size_x"] * tile
+            compute = compute + "if (level + {} < nLevels[blockIdx.x])\n{{\n{}}}\n".format(str(offset), compute_block.replace("<%OFFSET%>", str(offset)))
     code = code.replace("<%COMPUTE_BLOCK%>", compute)
     return code
 
