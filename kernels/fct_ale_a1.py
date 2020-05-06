@@ -5,7 +5,7 @@ import argparse
 
 def generate_code(tuning_parameters):
     code = \
-        "__global__ void fct_ale_a1(const <%REAL_TYPE%> * __restrict__ fct_low_order, const <%REAL_TYPE%> * __restrict__ ttf, const int * __restrict__ nLevels, <%REAL_TYPE%> * fct_ttf_max, <%REAL_TYPE%> * fct_ttf_min)\n" \
+        "__global__ void fct_ale_a1(const <%REAL_TYPE%> * __restrict__ fct_low_order, const <%REAL_TYPE%> * __restrict__ ttf, const int * __restrict__ nLevels, <%REAL_TYPE%> * __restrict__ fct_ttf_max, <%REAL_TYPE%> * __restrict__ fct_ttf_min)\n" \
         "{\n" \
         "const <%INT_TYPE%> node = (blockIdx.x * <%MAX_LEVELS%>);\n" \
         "\n" \
