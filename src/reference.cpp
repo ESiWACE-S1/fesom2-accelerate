@@ -18,7 +18,7 @@ void fct_ale(int myDim_nod2D, int eDim_nod2D, int * nLevels_nod2D, real_type * f
     // a2: Admissible increments on elements
     // (only layers below the first and above the last layer)
     // look for max, min bounds for each element --> UV_rhs here auxilary array
-    fct_ale_a2_reference_(&myDim_elem2D, &nod2D, &nl, nLevels, UV_rhs, elem2D_nodes, fct_ttf_max, fct_ttf_min);
+    fct_ale_a2_reference_(&myDim_elem2D, &nl, nLevels, UV_rhs, elem2D_nodes, fct_ttf_max, fct_ttf_min);
     if ( vLimit == 1 )
     {
         for ( unsigned int node = 0; node < myDim_nod2D; node++ )
