@@ -297,26 +297,31 @@ void fct_ale_a1_reference_(int * nNodes, int * nLevels_nod2D, int * maxLevels_pt
 
 void fct_ale_a2_reference_(int * nElements_ptr, int * nNodes_ptr, int * maxLevels_ptr, int * nLevels, real_type * UV_rhs, int * elem2D_nodes, real_type * fct_ttf_max, real_type * fct_ttf_min)
 {
-    int nElements = *nElements_ptr;
-    int nNodes = *nNodes_ptr;
-    int maxLevels = *maxLevels_ptr;
+    const int nElements = *nElements_ptr;
+    const int nNodes = *nNodes_ptr;
+    const int maxLevels = *maxLevels_ptr;
+
     for ( unsigned int element = 0; element < nElements; element++ )
     {
+        int elementNodes[3] = {elem2D_nodes[(element * 3)], elem2D_nodes[(element * 3) + 1], elem2D_nodes[(element * 3) + 2]};
+
         for ( unsigned int element_z = 0; element_z < nLevels[element] - 1; element_z++ )
         {
-            unsigned int item = (element_z * nNodes);
+            const unsigned int UV_rhs_item = (element * maxLevels * 2) + (element_z * 2);
 
-            UV_rhs[(element_z * nElements) + element] = std::max(fct_ttf_max[item], fct_ttf_max[item + 1]);
-            UV_rhs[(element_z * nElements) + element] = std::max(UV_rhs[(element_z * nElements) + element], fct_ttf_max[item + 2]);
-            UV_rhs[(maxLevels * nElements) + (element_z * nElements) + element] = std::min(fct_ttf_min[item], fct_ttf_min[item + 1]);
-            UV_rhs[(maxLevels * nElements) + (element_z * nElements) + element] = std::min(UV_rhs[(maxLevels * nElements) + (element_z * nElements) + element], fct_ttf_min[item + 2]);
+            UV_rhs[UV_rhs_item] = std::max(fct_ttf_max[(elementNodes[0] * maxLevels) + element_z], fct_ttf_max[(elementNodes[1] * maxLevels) + element_z]);
+            UV_rhs[UV_rhs_item] = std::max(UV_rhs[UV_rhs_item], fct_ttf_max[(elementNodes[2] * maxLevels) + element_z]);
+            UV_rhs[UV_rhs_item + 1] = std::min(fct_ttf_min[(elementNodes[0] * maxLevels) + element_z], fct_ttf_min[(elementNodes[1] * maxLevels) + element_z]);
+            UV_rhs[UV_rhs_item + 1] = std::min(UV_rhs[UV_rhs_item + 1], fct_ttf_min[(elementNodes[2] * maxLevels) + element_z]);
         }
-        if ( nLevels[element] <= maxLevels - 2 )
+        if ( nLevels[element] <= maxLevels - 1 )
         {
             for ( unsigned int element_z = nLevels[element] - 1; element_z < maxLevels - 1; element_z++ )
             {
-                UV_rhs[(element_z * nElements) + element] = std::numeric_limits<real_type>::min();
-                UV_rhs[(maxLevels * nElements) + (element_z * nElements) + element] = std::numeric_limits<real_type>::max();
+                const unsigned int UV_rhs_item = (element * maxLevels * 2) + (element_z * 2);
+
+                UV_rhs[UV_rhs_item] = std::numeric_limits<real_type>::min();
+                UV_rhs[UV_rhs_item + 1] = std::numeric_limits<real_type>::max();
             }
         }
     }
