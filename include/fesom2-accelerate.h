@@ -135,7 +135,6 @@ void fct_ale_a1_accelerated(int nNodes, struct gpuMemory * nLevels_nod2D, struct
  Computing maximum and minimum bounds per element.
 
  @param nElement Number of elements
- @param nNodes Number of nodes
  @param maxLevels_ptr Maximum number of levels per node
  @param nLevels Array containing the number of vertical levels per element
  @param UV_rhs Three dimensional array containing bound for each element
@@ -143,5 +142,5 @@ void fct_ale_a1_accelerated(int nNodes, struct gpuMemory * nLevels_nod2D, struct
  @param fct_ttf_max Previously computed maximum
  @param fct_ttf_min Previously computed minimum
 */
-void fct_ale_a2_reference_(int * nElements, int * nNodes, int * maxLevels, int * nLevels, real_type * UV_rhs, int * elem2D_nodes, real_type * fct_ttf_max, real_type * fct_ttf_min);
+void fct_ale_a2_reference_(int * nElements, int * maxLevels, int * nLevels, real_type * UV_rhs, int * elem2D_nodes, real_type * fct_ttf_max, real_type * fct_ttf_min);
 }

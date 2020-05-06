@@ -295,10 +295,9 @@ void fct_ale_a1_reference_(int * nNodes, int * nLevels_nod2D, int * maxLevels_pt
     }
 }
 
-void fct_ale_a2_reference_(int * nElements_ptr, int * nNodes_ptr, int * maxLevels_ptr, int * nLevels, real_type * UV_rhs, int * elem2D_nodes, real_type * fct_ttf_max, real_type * fct_ttf_min)
+void fct_ale_a2_reference_(int * nElements_ptr, int * maxLevels_ptr, int * nLevels, real_type * UV_rhs, int * elem2D_nodes, real_type * fct_ttf_max, real_type * fct_ttf_min)
 {
     const int nElements = *nElements_ptr;
-    const int nNodes = *nNodes_ptr;
     const int maxLevels = *maxLevels_ptr;
 
     for ( unsigned int element = 0; element < nElements; element++ )
