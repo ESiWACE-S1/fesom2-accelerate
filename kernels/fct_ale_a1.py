@@ -94,5 +94,5 @@ if __name__ == "__main__":
     command_line = parse_command_line()
     results = tune(command_line.nodes, command_line.max_levels, command_line.max_tile, command_line.real_type)
     best_configuration = min(results, key=lambda x : x["time"])
-    print("Block size X: {}".format(best_configuration["block_size_x"]))
+    print("/* Block size X: {} */".format(best_configuration["block_size_x"]))
     print(generate_code(best_configuration))
