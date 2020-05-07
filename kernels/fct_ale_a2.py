@@ -28,6 +28,20 @@ def generate_code(tuning_parameters):
         "else {\n" \
         "UV_rhs[element_index + level + <%OFFSET%>] = make_<%REAL_TYPE%>2(<%MIN%>, <%MAX%>);\n" \
         "}\n"
+    code = code.replace("<%INT_TYPE%>", tuning_parameters["int_type"].replace("_", " "))
+    code = code.replace("<%REAL_TYPE%>", tuning_parameters["real_type"])
+    code = code.replace("<%MAX_LEVELS%>", str(tuning_parameters["max_levels"]))
+    if tuning_parameters["tiling_x"] > 1:
+        code = code.replace("<%BLOCK_SIZE%>", str(tuning_parameters["block_size_x"] * tuning_parameters["tiling_x"]))
+    else:
+        code = code.replace("<%BLOCK_SIZE%>", str(tuning_parameters["block_size_x"]))
+    compute = str()
+    for tile in range(0, tuning_parameters["tiling_x"]):
+        if tile == 0:
+            compute = compute + compute_block.replace(" + <%OFFSET%>", "")
+        else:
+            compute = compute + compute_block.replace(" <%OFFSET%>", str(tuning_parameters["block_size_x"] * tile))
+    code = code.replace("<%COMPUTE_BLOCK%>", compute)
     return code
 
 def reference(elements, levels, max_levels, nodes, UV_rhs, fct_ttf_max, fct_ttf_min, real_type):
