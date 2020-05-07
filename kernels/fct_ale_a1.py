@@ -16,7 +16,8 @@ def generate_code(tuning_parameters):
         "<%COMPUTE_BLOCK%>" \
         "}\n" \
         "}\n"
-    compute_block = "fct_low_order_item = fct_low_order[node + level + <%OFFSET%>];\n" \
+    compute_block = \
+        "fct_low_order_item = fct_low_order[node + level + <%OFFSET%>];\n" \
         "ttf_item = ttf[node + level + <%OFFSET%>];\n" \
         "fct_ttf_max[node + level + <%OFFSET%>] = fmax(fct_low_order_item, ttf_item);\n" \
         "fct_ttf_min[node + level + <%OFFSET%>] = fmin(fct_low_order_item, ttf_item);\n"
