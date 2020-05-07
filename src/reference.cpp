@@ -331,9 +331,9 @@ void fct_ale_a2_reference_(int * nElements_ptr, int * maxLevels_ptr, int * nLeve
             UV_rhs[UV_rhs_index] = std::max(std::max(fct_ttf_max[ttf_index_0], fct_ttf_max[ttf_index_1]), fct_ttf_max[ttf_index_2]);
             UV_rhs[UV_rhs_index + 1] = std::min(std::min(fct_ttf_min[ttf_index_0], fct_ttf_min[ttf_index_1]), fct_ttf_min[ttf_index_2]);
         }
-        if ( nLevels[element] <= maxLevels - 1 )
+        if ( nLevels[element] <= maxLevels )
         {
-            for ( unsigned int element_z = nLevels[element] - 1; element_z < maxLevels - 1; element_z++ )
+            for ( unsigned int element_z = nLevels[element] - 1; element_z < maxLevels; element_z++ )
             {
                 const unsigned int UV_rhs_index = (element * maxLevels * 2) + (element_z * 2);
 
