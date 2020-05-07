@@ -296,9 +296,11 @@ void fct_ale_pre_comm_( int* alg_state, real_type* fct_ttf_max, real_type*  fct_
     *alg_state = 2;
 }
 
-void fct_ale_a1_reference_(int * nNodes, int * nLevels_nod2D, int * maxLevels_ptr, real_type * fct_ttf_max, real_type * fct_ttf_min,  real_type * fct_low_order, real_type * ttf)
+void fct_ale_a1_reference_(int * nNodes2D, int * nLevels_nod2D, int * maxLevels_ptr, real_type * fct_ttf_max, real_type * fct_ttf_min,  real_type * fct_low_order, real_type * ttf)
 {
-    for ( unsigned int node2D = 0; node2D < *nNodes; node2D++ )
+    const int nNodes = *nNodes2D;
+    const int maxLevels = *maxLevels_ptr - 1;
+    for ( unsigned int node2D = 0; node2D < nNodes; node2D++ )
     {
         for ( unsigned int node2D_z = 0; node2D_z < nLevels_nod2D[node2D] - 1; node2D_z++ )
         {
@@ -313,7 +315,7 @@ void fct_ale_a1_reference_(int * nNodes, int * nLevels_nod2D, int * maxLevels_pt
 void fct_ale_a2_reference_(int * nElements_ptr, int * maxLevels_ptr, int * nLevels, real_type * UV_rhs, int * elem2D_nodes, real_type * fct_ttf_max, real_type * fct_ttf_min)
 {
     const int nElements = *nElements_ptr;
-    const int maxLevels = *maxLevels_ptr;
+    const int maxLevels = *maxLevels_ptr - 1;
 
     for ( unsigned int element = 0; element < nElements; element++ )
     {
