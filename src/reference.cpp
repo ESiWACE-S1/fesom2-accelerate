@@ -281,6 +281,21 @@ void fct_ale(int myDim_nod2D, int eDim_nod2D, int * nLevels_nod2D, real_type * f
     }
 }
 
+void fct_ale_pre_comm_( int* alg_state, real_type* fct_ttf_max, real_type*  fct_ttf_min, 
+                        real_type*  fct_plus, real_type*  fct_minus, real_type* tvert_max, 
+                        real_type*  tvert_min, real_type* ttf, real_type* fct_LO, real_type*  fct_adf_v, 
+                        real_type* UV_rhs, int* myDim_nod2D, int* eDim_nod2D, int* myDim_elem2D, 
+                        int* myDim_edge2D, int* nl, int* nlevels_nod2D, int* nlevels, int* elem2D_nodes, 
+                        int* nod_in_elem2D_num, int* nod_in_elem2D, int* vlimit, real_type* flux_eps)
+{
+    *alg_state = 0;
+    int nNodes = (*myDim_nod2D) + (*eDim_nod2D);
+    fct_ale_a1_reference_(&nNodes, nlevels_nod2D, nl, fct_ttf_max, fct_ttf_min, fct_LO, ttf);
+    *alg_state = 1;
+    fct_ale_a2_reference_(myDim_elem2D, nl, nlevels, UV_rhs, elem2D_nodes, fct_ttf_max, fct_ttf_min);
+    *alg_state = 2;
+}
+
 void fct_ale_a1_reference_(int * nNodes, int * nLevels_nod2D, int * maxLevels_ptr, real_type * fct_ttf_max, real_type * fct_ttf_min,  real_type * fct_low_order, real_type * ttf)
 {
     for ( unsigned int node2D = 0; node2D < *nNodes; node2D++ )
@@ -306,21 +321,22 @@ void fct_ale_a2_reference_(int * nElements_ptr, int * maxLevels_ptr, int * nLeve
 
         for ( unsigned int element_z = 0; element_z < nLevels[element] - 1; element_z++ )
         {
-            const unsigned int UV_rhs_item = (element * maxLevels * 2) + (element_z * 2);
+            const unsigned int UV_rhs_index = (element * maxLevels * 2) + (element_z * 2);
+            const unsigned int ttf_index_0 = (elementNodes[0] * maxLevels) + element_z;
+            const unsigned int ttf_index_1 = (elementNodes[1] * maxLevels) + element_z;
+            const unsigned int ttf_index_2 = (elementNodes[2] * maxLevels) + element_z;
 
-            UV_rhs[UV_rhs_item] = std::max(fct_ttf_max[(elementNodes[0] * maxLevels) + element_z], fct_ttf_max[(elementNodes[1] * maxLevels) + element_z]);
-            UV_rhs[UV_rhs_item] = std::max(UV_rhs[UV_rhs_item], fct_ttf_max[(elementNodes[2] * maxLevels) + element_z]);
-            UV_rhs[UV_rhs_item + 1] = std::min(fct_ttf_min[(elementNodes[0] * maxLevels) + element_z], fct_ttf_min[(elementNodes[1] * maxLevels) + element_z]);
-            UV_rhs[UV_rhs_item + 1] = std::min(UV_rhs[UV_rhs_item + 1], fct_ttf_min[(elementNodes[2] * maxLevels) + element_z]);
+            UV_rhs[UV_rhs_index] = std::max(std::max(fct_ttf_max[ttf_index_0], fct_ttf_max[ttf_index_1]), fct_ttf_max[ttf_index_2]);
+            UV_rhs[UV_rhs_index + 1] = std::min(std::min(fct_ttf_min[ttf_index_0], fct_ttf_min[ttf_index_1]), fct_ttf_min[ttf_index_2]);
         }
         if ( nLevels[element] <= maxLevels - 1 )
         {
             for ( unsigned int element_z = nLevels[element] - 1; element_z < maxLevels - 1; element_z++ )
             {
-                const unsigned int UV_rhs_item = (element * maxLevels * 2) + (element_z * 2);
+                const unsigned int UV_rhs_index = (element * maxLevels * 2) + (element_z * 2);
 
-                UV_rhs[UV_rhs_item] = std::numeric_limits<real_type>::min();
-                UV_rhs[UV_rhs_item + 1] = std::numeric_limits<real_type>::max();
+                UV_rhs[UV_rhs_index] = std::numeric_limits<real_type>::min();
+                UV_rhs[UV_rhs_index + 1] = std::numeric_limits<real_type>::max();
             }
         }
     }
