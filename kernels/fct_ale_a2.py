@@ -17,7 +17,8 @@ def generate_code(tuning_parameters):
         "}\n" \
         "}\n"
     compute_block = \
-        "if ( level + <%OFFSET%> < nLevels[blockIdx.x] ) {\n" \
+        "if ( level + <%OFFSET%> < nLevels[blockIdx.x] )\n" \
+        "{\n" \
         "<%REAL_TYPE%>2 temp = make_<%REAL_TYPE%>2(0.0, 0.0);\n" \
         "temp.x = fmax(fct_ttf_max[element_node0_index + level + <%OFFSET%>], fct_ttf_max[element_node1_index + level + <%OFFSET%>]);\n" \
         "temp.x = fmax(temp.x, fct_ttf_max[element_node2_index + level + <%OFFSET%>]);\n" \
@@ -25,7 +26,8 @@ def generate_code(tuning_parameters):
         "temp.y = fmin(temp.y, fct_ttf_min[element_node2_index + level + <%OFFSET%>]);\n" \
         "UV_rhs[element_index + level + <%OFFSET%>] = temp;\n" \
         "}\n" \
-        "else {\n" \
+        "else\n" \
+        "{\n" \
         "UV_rhs[element_index + level + <%OFFSET%>] = make_<%REAL_TYPE%>2(<%MIN%>, <%MAX%>);\n" \
         "}\n"
     code = code.replace("<%INT_TYPE%>", tuning_parameters["int_type"].replace("_", " "))
