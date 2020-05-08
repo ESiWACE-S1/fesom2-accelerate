@@ -7,6 +7,7 @@
 #include <cuda_runtime_api.h>
 #endif
 using real_type = double;
+using real2_type = double2;
 
 #ifdef __CUDACC__
 /**
@@ -128,7 +129,22 @@ void fct_ale_a1_reference_( int * nNodes, int * nLevels_nod2D, int * maxLevels_p
  @param synchronous A boolean value to control synchronization
  @param stream The CUDA stream associated with the transfer
 */
-void fct_ale_a1_accelerated(int nNodes, struct gpuMemory * nLevels_nod2D, struct gpuMemory * fct_ttf_max, struct gpuMemory * fct_ttf_min,  struct gpuMemory * fct_low_order, struct gpuMemory * ttf, bool synchronous = true, cudaStream_t stream = (cudaStream_t) 0);
+void fct_ale_a1_accelerated(const int nNodes, struct gpuMemory * nLevels_nod2D, struct gpuMemory * fct_ttf_max, struct gpuMemory * fct_ttf_min,  struct gpuMemory * fct_low_order, struct gpuMemory * ttf, bool synchronous = true, cudaStream_t stream = (cudaStream_t) 0);
+
+/**
+ GPU CUDA implementation of step a2 of FCT_ALE.
+ Computes the admissible increments on elements.
+
+ @param nElements The number of elements
+ @param nLevels_elem Array containing the number of vertical levels per element
+ @param elementNodes Array containing the ID of the three nodes of each element
+ @param UV_rhs Computed admissible increments
+ @param fct_ttf_max Maximum computed in step a1
+ @param fct_ttf_min Minimum computed in step a1
+ @param synchronous A boolean value to control synchronization
+ @param stream The CUDA stream associated with the transfer
+*/
+void fct_ale_a2_accelerated(const int nElements, struct gpuMemory * nLevels_elem, struct gpuMemory * elementNodes, struct gpuMemory * UV_rhs, struct gpuMemory * fct_ttf_max, struct gpuMemory * fct_ttf_min, bool synchronous = true, cudaStream_t stream = (cudaStream_t) 0);
 #endif
 
 /**
