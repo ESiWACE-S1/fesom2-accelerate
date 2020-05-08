@@ -26,13 +26,10 @@ def generate_code(tuning_parameters):
         "temp.y = fmin(temp.y, fct_ttf_min[element_node2_index + level + <%OFFSET%>]);\n" \
         "UV_rhs[element_index + level + <%OFFSET%>] = temp;\n" \
         "}\n" \
-        "else\n" \
+        "else if ( level + <%OFFSET%> < <%MAX_LEVELS%> - 1 )\n" \
         "{\n" \
         "UV_rhs[element_index + level + <%OFFSET%>] = make_<%REAL_TYPE%>2(<%MIN%>, <%MAX%>);\n" \
         "}\n"
-    code = code.replace("<%INT_TYPE%>", tuning_parameters["int_type"].replace("_", " "))
-    code = code.replace("<%REAL_TYPE%>", tuning_parameters["real_type"])
-    code = code.replace("<%MAX_LEVELS%>", str(tuning_parameters["max_levels"]))
     if tuning_parameters["tiling_x"] > 1:
         code = code.replace("<%BLOCK_SIZE%>", str(tuning_parameters["block_size_x"] * tuning_parameters["tiling_x"]))
     else:
@@ -53,6 +50,9 @@ def generate_code(tuning_parameters):
         raise ValueError
     compute = compute.replace("<%REAL_TYPE%>", tuning_parameters["real_type"])
     code = code.replace("<%COMPUTE_BLOCK%>", compute)
+    code = code.replace("<%INT_TYPE%>", tuning_parameters["int_type"].replace("_", " "))
+    code = code.replace("<%REAL_TYPE%>", tuning_parameters["real_type"])
+    code = code.replace("<%MAX_LEVELS%>", str(tuning_parameters["max_levels"]))
     return code
 
 def reference(elements, levels, max_levels, nodes, UV_rhs, fct_ttf_max, fct_ttf_min, real_type):
