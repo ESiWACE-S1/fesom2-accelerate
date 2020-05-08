@@ -106,7 +106,7 @@ def tune(elements, nodes, max_levels, max_tile, real_type):
     arguments = [levels, element_nodes, uv_rhs, fct_ttf_max, fct_ttf_min]
     # Reference
     reference(elements, levels, max_levels, element_nodes, uv_rhs_control, fct_ttf_max, fct_ttf_min, real_type)
-    arguments_control = [None, None, uv_rhs, None, None]
+    arguments_control = [None, None, uv_rhs_control, None, None]
     # Tuning
     results, environment = tune_kernel("fct_ale_a2", generate_code, "{} * block_size_x".format(elements), arguments, tuning_parameters, lang="CUDA", answer=arguments_control, verify=verify, restrictions=constraints, quiet=True)
     return results
