@@ -5,11 +5,12 @@
 #ifdef __CUDACC__
 #include <driver_types.h>
 #include <cuda_runtime_api.h>
-#endif
+#endif /*__CUDACC__*/
 using real_type = double;
 using real2_type = double2;
 
 #ifdef __CUDACC__
+
 /**
  A structure to map GPU and host memory.
 */
@@ -96,7 +97,8 @@ inline bool transferToHost(gpuMemory & buffer, bool synchronous = true, cudaStre
     
     return errorHandling(status);
 }
-#endif
+
+#endif /*__CUDACC__*/
 
 extern "C"
 {
@@ -116,6 +118,7 @@ void fct_ale_a1_reference_( int * nNodes, int * nLevels_nod2D, int * maxLevels_p
                             real_type * fct_ttf_min,  real_type * fct_low_order, real_type * ttf);
 
 #ifdef __CUDACC__
+
 /**
  GPU CUDA implementation of step a1 of FCT_ALE.
  This step computes the maximum and minimum between the old solution and the updated low-order solution per node.
@@ -145,7 +148,8 @@ void fct_ale_a1_accelerated(const int nNodes, struct gpuMemory * nLevels_nod2D, 
  @param stream The CUDA stream associated with the transfer
 */
 void fct_ale_a2_accelerated(const int nElements, struct gpuMemory * nLevels_elem, struct gpuMemory * elementNodes, struct gpuMemory * UV_rhs, struct gpuMemory * fct_ttf_max, struct gpuMemory * fct_ttf_min, bool synchronous = true, cudaStream_t stream = (cudaStream_t) 0);
-#endif
+
+#endif /*__CUDACC__*/
 
 /**
  CPU reference implementation of step a2 of FCT_ALE.
