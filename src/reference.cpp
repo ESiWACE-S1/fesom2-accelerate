@@ -16,11 +16,13 @@ void fct_ale(int myDim_nod2D, int eDim_nod2D, int * nLevels_nod2D, real_type * f
     // a1: max, min between old solution and updated low-order solution per node
     int nod2D = myDim_nod2D + eDim_nod2D;
     fct_ale_a1_reference_(&nod2D, nLevels_nod2D, &nl, fct_ttf_max, fct_ttf_min, fct_LO, ttf);
+
     // a2: Admissible increments on elements
     // (only layers below the first and above the last layer)
     // look for max, min bounds for each element --> UV_rhs here auxilary array
 
     fct_ale_a2_reference_(&myDim_elem2D, nLevels, &nl, UV_rhs, elem2D_nodes, fct_ttf_max, fct_ttf_min, &bigval);
+    
     if ( vLimit == 1 )
     {
         for ( unsigned int node = 0; node < myDim_nod2D; node++ )
@@ -285,11 +287,12 @@ void fct_ale(int myDim_nod2D, int eDim_nod2D, int * nLevels_nod2D, real_type * f
 
 void fct_ale_pre_comm_( int* alg_state, real_type* fct_ttf_max, real_type*  fct_ttf_min, 
                         real_type*  fct_plus, real_type*  fct_minus, real_type* tvert_max, 
-                        real_type*  tvert_min, real_type* ttf, real_type* fct_LO, real_type*  fct_adf_v, 
-                        real_type* UV_rhs, int* myDim_nod2D, int* eDim_nod2D, int* myDim_elem2D, 
-                        int* myDim_edge2D, int* nl, int* nlevels_nod2D, int* nlevels_elem2D, int* elem2D_nodes, 
-                        int* nod_in_elem2D_num, int* nod_in_elem2D, int* nod_in_elem2D_dim, int* vlimit, 
-                        real_type* flux_eps, real_type* bignumber)
+                        real_type*  tvert_min, real_type* ttf, real_type* fct_LO, real_type*  fct_adf_v,
+                        real_type* fct_adf_h, real_type* UV_rhs, real_type* area, int* myDim_nod2D, int* eDim_nod2D, 
+                        int* myDim_elem2D, int* myDim_edge2D, int* nl, int* nlevels_nod2D, int* nlevels_elem2D, 
+                        int* elem2D_nodes, int* nod_in_elem2D_num, int* nod_in_elem2D, int* nod_in_elem2D_dim, 
+                        int* nod2D_edges, int * elem2D_edges, int* vlimit, real_type* flux_eps, 
+                        real_type* bignumber, real_type * dt)
 {
     *alg_state = 0;
     int nNodes = (*myDim_nod2D) + (*eDim_nod2D);
@@ -300,10 +303,14 @@ void fct_ale_pre_comm_( int* alg_state, real_type* fct_ttf_max, real_type*  fct_
     *alg_state = 2;
     if (*vlimit == 1)
     {
-        fct_ale_a3_reference_(myDim_nod2D, nlevels_nod2D, nl, fct_ttf_max, fct_ttf_min, fct_LO, tvert_max, 
-                              tvert_min, UV_rhs, fct_plus, fct_minus, fct_adf_v, nod_in_elem2D, 
-                              nod_in_elem2D_num, nod_in_elem2D_dim);
+        fct_ale_a3_reference_(  myDim_nod2D, nlevels_nod2D, nl, fct_ttf_max, fct_ttf_min, fct_LO, tvert_max, 
+                                tvert_min, UV_rhs, fct_plus, fct_minus, fct_adf_v, nod_in_elem2D, 
+                                nod_in_elem2D_num, nod_in_elem2D_dim);
         *alg_state = 4;
+        fct_ale_a4_reference_(  myDim_nod2D, nlevels_nod2D, nlevels_elem2D, nl, myDim_edge2D, fct_plus, fct_minus,
+                                fct_adf_h, area, fct_ttf_min, fct_ttf_min, nod2D_edges, elem2D_edges, flux_eps, 
+                                dt);
+        *alg_state = 5;
     }
 }
 
@@ -407,6 +414,46 @@ void fct_ale_a3_reference_( int * nNodes2D, int * nLevels_nod2D, int * nl, real_
             unsigned int adf_item = node2D * (maxLevels + 1) + node2D_z;
             fct_plus[item] = std::max(0.,fct_adf_v[adf_item]) + std::max(0.,-fct_adf_v[adf_item + 1]);
             fct_minus[item] = std::min(0.,fct_adf_v[adf_item]) + std::min(0.,-fct_adf_v[adf_item + 1]);
+        }
+    }
+}
+
+void fct_ale_a4_reference_( int * nNodes2D, int * nLevels_nod2D, int * nLevels_elem2D, int * nl, int * nEdges2D,
+                            real_type * fct_plus, real_type * fct_minus, real_type * fct_adf_h, 
+                            real_type * area, real_type * fct_ttf_max, real_type * fct_ttf_min, 
+                            int * edges, int * edge_tri, real_type * flux_eps, real_type * dt )
+{
+    const int maxLevels = *nl - 1;
+    for ( unsigned int edge2D = 0; edge2D < *nEdges2D; edge2D++ )
+    {
+        unsigned int node_start_index = edges[2 * edge2D] - 1;
+        unsigned int node_end_index   = edges[2 * edge2D + 1] - 1;
+        unsigned int elem_left_index  = edge_tri[2 * edge2D] - 1;
+        unsigned int elem_right_index = edge_tri[2 * edge2D + 1] - 1;
+        unsigned int nl1 = nLevels_elem2D[elem_left_index] - 1;
+        unsigned int nl2 = (elem_right_index >= 0)? nLevels_elem2D[elem_right_index] - 1:0;
+        unsigned int maxLev = std::max(nl1, nl2);
+        for( unsigned int node2D_z = 0; node2D_z < maxLev; node2D_z++ )
+        {
+            unsigned int item_start = node_start_index * maxLevels + node2D_z;
+            unsigned int item_end   = node_end_index * maxLevels + node2D_z;
+            real_type adfh = fct_adf_h[edge2D * maxLevels + node2D_z];
+            fct_plus[item_start]  += std::max(real_type(0), adfh);
+            fct_minus[item_start] += std::min(real_type(0), adfh);
+            fct_plus[item_end]    += std::max(real_type(0), -adfh);
+            fct_minus[item_end]   += std::min(real_type(0), -adfh);
+        }    
+    }
+    for ( unsigned int node2D = 0; node2D < *nNodes2D; node2D++ )
+    {
+        for ( unsigned int node2D_z = 0; node2D_z < nLevels_nod2D[node2D] - 1; node2D_z++ )
+        {
+            unsigned int item = node2D * maxLevels + node2D_z;
+            real_type inv_area = (*dt) / area[item];
+            real_type flux = fct_plus[item] * inv_area + (*flux_eps);
+            fct_plus[item] = std::min(real_type(1), fct_ttf_max[item] / flux);
+            flux = fct_minus[item] * inv_area - (*flux_eps);
+            fct_minus[item] = std::min(real_type(1), fct_ttf_min[item] / flux);
         }
     }
 }
