@@ -408,7 +408,7 @@ void fct_ale_a3_reference_( int * nNodes2D, int * nLevels_nod2D, int * nl, real_
         unsigned int item = node2D * maxLevels + nLevs - 2;
         fct_ttf_max[item] = tvert_max[nLevs - 2] - fct_LO[item];
         fct_ttf_min[item] = tvert_min[nLevs - 2] - fct_LO[item];
-        for ( unsigned int node2D_z = 1; node2D_z < nLevs - 1; node2D_z++ )
+        for ( unsigned int node2D_z = 0; node2D_z < nLevs - 1; node2D_z++ )
         {
             unsigned int item = node2D * maxLevels + node2D_z;
             unsigned int adf_item = node2D * (maxLevels + 1) + node2D_z;
