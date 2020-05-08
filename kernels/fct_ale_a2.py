@@ -41,6 +41,14 @@ def generate_code(tuning_parameters):
             compute = compute + compute_block.replace(" + <%OFFSET%>", "")
         else:
             compute = compute + compute_block.replace(" <%OFFSET%>", str(tuning_parameters["block_size_x"] * tile))
+    if tuning_parameters["real_type"] == "float":
+        compute = compute.replace("<%MIN%>", numpy.finfo(numpy.float32).min)
+        compute = compute.replace("<%MAX%>", numpy.finfo(numpy.float32).max)
+    elif tuning_parameters["real_type"] == "double":
+        compute = compute.replace("<%MIN%>", numpy.finfo(numpy.float64).min)
+        compute = compute.replace("<%MAX%>", numpy.finfo(numpy.float64).max)
+    else:
+        raise ValueError
     code = code.replace("<%COMPUTE_BLOCK%>", compute)
     return code
 
@@ -65,12 +73,47 @@ def reference(elements, levels, max_levels, nodes, UV_rhs, fct_ttf_max, fct_ttf_
 def verify(control_data, data, atol=None):
     return numpy.allclose(control_data, data, atol)
 
-def tune(nodes, max_levels, max_tile, real_type):
-    pass
+def tune(elements, nodes, max_levels, max_tile, real_type):
+    numpy_real_type = None
+    # Tuning and code generation parameters
+    tuning_parameters = dict()
+    tuning_parameters["int_type"] = ["unsigned_int", "int"]
+    tuning_parameters["real_type"] = [real_type]
+    tuning_parameters["max_levels"] = [str(max_levels)]
+    tuning_parameters["block_size_x"] = [32 * i for i in range(1, 33)]
+    tuning_parameters["tiling_x"] = [i for i in range(1, max_tile)]
+    constraints = list()
+    constraints.append("block_size_x * tiling_x <= max_levels")
+    # Memory allocation and initialization
+    if real_type == "float":
+        numpy_real_type = numpy.float32
+    elif real_type == "double":
+        numpy_real_type = numpy.float64
+    else:
+        raise ValueError
+    uv_rhs = numpy.zeros(elements * max_levels * 2).astype(numpy_real_type)
+    uv_rhs_control = numpy.zeros_like(uv_rhs).astype(numpy_real_type)
+    fct_ttf_max = numpy.random.randn(nodes * max_levels).astype(numpy_real_type)
+    fct_ttf_min = numpy.random.randn(nodes * max_levels).astype(numpy_real_type)
+    levels = numpy.zeros(elements).astype(numpy.int32)
+    element_nodes = numpy.zeros(elements * 3).astype(numpy.int32)
+    for element in range(0, elements):
+        levels[element] = numpy.random.randint(0, max_levels)
+        element_nodes[(element * 3)] = numpy.random.randint(0, nodes)
+        element_nodes[(element * 3) + 1] = numpy.random.randint(0, nodes)
+        element_nodes[(element * 3) + 2] = numpy.random.randint(0, nodes)
+    arguments = [levels, element_nodes, uv_rhs, fct_ttf_max, fct_ttf_min]
+    # Reference
+    reference(elements, levels, max_levels, element_nodes, uv_rhs_control, fct_ttf_max, fct_ttf_min, real_type)
+    arguments_control = [None, None, uv_rhs, None, None]
+    # Tuning
+    results, environment = tune_kernel("fct_ale_a2", generate_code, "{} * block_size_x".format(elements), arguments, tuning_parameters, lang="CUDA", answer=arguments_control, verify=verify, restrictions=constraints, quiet=True)
+    return results
 
 def parse_command_line():
     parser = argparse.ArgumentParser(description="FESOM2 FCT ALE A2")
     parser.add_argument("--elements", help="The number of elements.", type=int, required=True)
+    parser.add_argument("--nodes", help="The number of nodes.", type=int, required=True)
     parser.add_argument("--max_levels", help="The maximum number of vertical levels per element.", type=int, required=True)
     parser.add_argument("--max_tile", help="The maximum tiling factor.", type=int, default=2)
     parser.add_argument("--real_type", help="The floating point type to use.", choices=["float", "double"], type=str, required=True)
@@ -78,7 +121,7 @@ def parse_command_line():
 
 if __name__ == "__main__":
     command_line = parse_command_line()
-    results = tune(command_line.elements, command_line.max_levels, command_line.max_tile, command_line.real_type)
+    results = tune(command_line.elements, command_line.nodes, command_line.max_levels, command_line.max_tile, command_line.real_type)
     best_configuration = min(results, key=lambda x : x["time"])
     print("/* Block size X: {} */".format(best_configuration["block_size_x"]))
     print(generate_code(best_configuration))
