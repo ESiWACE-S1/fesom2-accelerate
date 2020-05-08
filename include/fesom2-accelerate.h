@@ -5,11 +5,12 @@
 #ifdef __CUDACC__
 #include <driver_types.h>
 #include <cuda_runtime_api.h>
-#endif
+#endif /*__CUDACC__*/
 using real_type = double;
 using real2_type = double2;
 
 #ifdef __CUDACC__
+
 /**
  A structure to map GPU and host memory.
 */
@@ -96,7 +97,8 @@ inline bool transferToHost(gpuMemory & buffer, bool synchronous = true, cudaStre
     
     return errorHandling(status);
 }
-#endif
+
+#endif /*__CUDACC__*/
 
 extern "C"
 {
@@ -116,6 +118,7 @@ void fct_ale_a1_reference_( int * nNodes, int * nLevels_nod2D, int * maxLevels_p
                             real_type * fct_ttf_min,  real_type * fct_low_order, real_type * ttf);
 
 #ifdef __CUDACC__
+
 /**
  GPU CUDA implementation of step a1 of FCT_ALE.
  This step computes the maximum and minimum between the old solution and the updated low-order solution per node.
@@ -129,7 +132,7 @@ void fct_ale_a1_reference_( int * nNodes, int * nLevels_nod2D, int * maxLevels_p
  @param synchronous A boolean value to control synchronization
  @param stream The CUDA stream associated with the transfer
 */
-void fct_ale_a1_accelerated(const int nNodes, struct gpuMemory * nLevels_nod2D, struct gpuMemory * fct_ttf_max, struct gpuMemory * fct_ttf_min,  struct gpuMemory * fct_low_order, struct gpuMemory * ttf, bool synchronous = true, cudaStream_t stream = (cudaStream_t) 0);
+void fct_ale_a1_accelerated(const int nNodes, struct gpuMemory * nLevels_nod2D, struct gpuMemory * fct_ttf_max, struct gpuMemory * fct_ttf_min, struct gpuMemory * fct_low_order, struct gpuMemory * ttf, bool synchronous = true, cudaStream_t stream = (cudaStream_t) 0);
 
 /**
  GPU CUDA implementation of step a2 of FCT_ALE.
@@ -145,7 +148,27 @@ void fct_ale_a1_accelerated(const int nNodes, struct gpuMemory * nLevels_nod2D, 
  @param stream The CUDA stream associated with the transfer
 */
 void fct_ale_a2_accelerated(const int nElements, struct gpuMemory * nLevels_elem, struct gpuMemory * elementNodes, struct gpuMemory * UV_rhs, struct gpuMemory * fct_ttf_max, struct gpuMemory * fct_ttf_min, bool synchronous = true, cudaStream_t stream = (cudaStream_t) 0);
-#endif
+
+/**
+ GPU CUDA implementation of steps a1 and a2 of FCT_ALE.
+ This step computes: 1) the maximum and minimum between the old solution and the updated low-order solution per node, and 2) the admissible increments on elements.
+
+ @param nNodes The number of nodes
+ @param nElements The number of elements
+ @param nLevels_nod2D Array containing the number of vertical levels per node
+ @param nLevels_elem Array containing the number of vertical levels per element
+ @param elementNodes Array containing the ID of the three nodes of each element
+ @param fct_ttf_max Computed maximum
+ @param fct_ttf_min Computed minimum
+ @param fct_low_order New low order solution of fct
+ @param ttf Old solution
+ @param UV_rhs Computed admissible increments
+ @param synchronous A boolean value to control synchronization
+ @param stream The CUDA stream associated with the transfer
+*/
+void fct_ale_a1_a2_accelerated(const int nNodes, const int nElements, struct gpuMemory * nLevels_nod2D, struct gpuMemory * nLevels_elem, struct gpuMemory * elementNodes, struct gpuMemory * fct_ttf_max, struct gpuMemory * fct_ttf_min, struct gpuMemory * fct_low_order, struct gpuMemory * ttf, struct gpuMemory * UV_rhs, bool synchronous = true, cudaStream_t stream = (cudaStream_t) 0);
+
+#endif /*__CUDACC__*/
 
 /**
  CPU reference implementation of step a2 of FCT_ALE.

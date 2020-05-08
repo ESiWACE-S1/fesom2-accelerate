@@ -71,3 +71,26 @@ void fct_ale_a2_accelerated(const int nElements, const struct gpuMemory * nLevel
         return;
     }
 }
+
+void fct_ale_a1_a2_accelerated(const int nNodes, const int nElements, struct gpuMemory * nLevels_nod2D, struct gpuMemory * nLevels_elem, struct gpuMemory * elementNodes, struct gpuMemory * fct_ttf_max, struct gpuMemory * fct_ttf_min, struct gpuMemory * fct_low_order, struct gpuMemory * ttf, struct gpuMemory * UV_rhs, bool synchronous, cudaStream_t stream)
+{
+    bool status = true;
+
+    status = transferToDevice(*fct_low_order, synchronous, stream);
+    if ( !status )
+    {
+        return;
+    }
+    status = transferToDevice(*ttf, synchronous, stream);
+    if ( !status )
+    {
+        return;
+    }
+    fct_ale_a1<<< dim3(nNodes), dim3(32) >>>(reinterpret_cast<real_type *>(fct_low_order->device_pointer), reinterpret_cast<real_type *>(ttf->device_pointer), reinterpret_cast<int *>(nLevels_nod2D->device_pointer), reinterpret_cast<real_type *>(fct_ttf_max->device_pointer), reinterpret_cast<real_type *>(fct_ttf_min->device_pointer));
+    fct_ale_a2<<< dim3(nElements), dim3(32) >>>(reinterpret_cast<int *>(nLevels_elem->device_pointer), reinterpret_cast<int *>(elementNodes->device_pointer), reinterpret_cast<real2_type *>(UV_rhs->device_pointer), reinterpret_cast<real_type *>(fct_ttf_max->device_pointer), reinterpret_cast<real_type *>(fct_ttf_min->device_pointer));
+    status = transferToHost(*UV_rhs, synchronous, stream);
+    if ( !status )
+    {
+        return;
+    }
+}
