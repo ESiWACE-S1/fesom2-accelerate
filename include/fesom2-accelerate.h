@@ -148,11 +148,18 @@ void fct_ale_a2_reference_( int * nElements, int * maxLevels, int * nLevels, rea
                             real_type * bignumber );
 
 
+void fct_ale_a3_reference_( int * nNodes2D, int * nLevels_nod2D, int * nl, real_type * fct_ttf_max, 
+                            real_type * fct_ttf_min,  real_type * fct_LO, 
+                            real_type * tvert_max, real_type * tvert_min, real_type * UV_rhs, 
+                            real_type * fct_plus, real_type * fct_minus, real_type * fct_adf_v,
+                            int * nod_in_elem2D, int * nod_in_elem2D_num, int * nod_in_elem2D_dim );
+
+
 void fct_ale_pre_comm_( int* alg_state, real_type* fct_ttf_max, real_type*  fct_ttf_min, 
                         real_type*  fct_plus, real_type*  fct_minus, real_type* tvert_max, 
                         real_type*  tvert_min, real_type* ttf, real_type* fct_LO, real_type*  fct_adf_v, 
                         real_type* UV_rhs, int* myDim_nod2D, int* eDim_nod2D, int* myDim_elem2D, 
                         int* myDim_edge2D, int* nl, int* nlevels_nod2D, int* nlevels, int* elem2D_nodes, 
-                        int* nod_in_elem2D_num, int* nod_in_elem2D, int* vlimit, real_type* flux_eps,
+                        int* nod_in_elem2D_num, int* nod_in_elem2D, int* nod_in_elem2D_dim, int* vlimit, real_type* flux_eps,
                         real_type * bignumber);
 }
