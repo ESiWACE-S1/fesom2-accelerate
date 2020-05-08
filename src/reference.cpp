@@ -404,8 +404,9 @@ void fct_ale_a3_reference_( int * nNodes2D, int * nLevels_nod2D, int * nl, real_
         for ( unsigned int node2D_z = 1; node2D_z < nLevs - 1; node2D_z++ )
         {
             unsigned int item = node2D * maxLevels + node2D_z;
-            fct_plus[item] = std::max(0.,fct_adf_v[item]) + std::max(0.,-fct_adf_v[item + 1]);
-            fct_minus[item] = std::min(0.,fct_adf_v[item]) + std::min(0.,-fct_adf_v[item + 1]);
+            unsigned int adf_item = node2D * (maxLevels + 1) + node2D_z;
+            fct_plus[item] = std::max(0.,fct_adf_v[adf_item]) + std::max(0.,-fct_adf_v[adf_item + 1]);
+            fct_minus[item] = std::min(0.,fct_adf_v[adf_item]) + std::min(0.,-fct_adf_v[adf_item + 1]);
         }
     }
 }
