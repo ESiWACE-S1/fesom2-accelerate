@@ -42,7 +42,7 @@ def generate_code(tuning_parameters):
         if tile == 0:
             compute = compute + compute_block.replace(" + <%OFFSET%>", "")
         else:
-            compute = compute + compute_block.replace(" <%OFFSET%>", str(tuning_parameters["block_size_x"] * tile))
+            compute = compute + compute_block.replace("<%OFFSET%>", str(tuning_parameters["block_size_x"] * tile))
     if tuning_parameters["real_type"] == "float":
         compute = compute.replace("<%MIN%>", str(numpy.finfo(numpy.float32).min))
         compute = compute.replace("<%MAX%>", str(numpy.finfo(numpy.float32).max))
