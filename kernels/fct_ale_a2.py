@@ -42,11 +42,11 @@ def generate_code(tuning_parameters):
         else:
             compute = compute + compute_block.replace(" <%OFFSET%>", str(tuning_parameters["block_size_x"] * tile))
     if tuning_parameters["real_type"] == "float":
-        compute = compute.replace("<%MIN%>", numpy.finfo(numpy.float32).min)
-        compute = compute.replace("<%MAX%>", numpy.finfo(numpy.float32).max)
+        compute = compute.replace("<%MIN%>", str(numpy.finfo(numpy.float32).min))
+        compute = compute.replace("<%MAX%>", str(numpy.finfo(numpy.float32).max))
     elif tuning_parameters["real_type"] == "double":
-        compute = compute.replace("<%MIN%>", numpy.finfo(numpy.float64).min)
-        compute = compute.replace("<%MAX%>", numpy.finfo(numpy.float64).max)
+        compute = compute.replace("<%MIN%>", str(numpy.finfo(numpy.float64).min))
+        compute = compute.replace("<%MAX%>", str(numpy.finfo(numpy.float64).max))
     else:
         raise ValueError
     code = code.replace("<%COMPUTE_BLOCK%>", compute)
