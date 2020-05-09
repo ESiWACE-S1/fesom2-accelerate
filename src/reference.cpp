@@ -430,7 +430,7 @@ void fct_ale_a4_reference_( int * nNodes2D, int * nLevels_nod2D, int * nLevels_e
         int elem_left_index  = edge_tri[2 * edge2D] - 1;
         int elem_right_index = edge_tri[2 * edge2D + 1] - 1;
         int nl1 = nLevels_elem2D[elem_left_index] - 1;
-        int nl2 = (elem_right_index >= 0)? (nLevels_elem2D[elem_right_index] - 2):-1;
+        int nl2 = (elem_right_index >= 0)? (nLevels_elem2D[elem_right_index] - 1):0;
         int maxLev = std::max(nl1, nl2); 
         for( int node2D_z = 0; node2D_z < maxLev; node2D_z++ )
         {
