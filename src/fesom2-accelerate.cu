@@ -94,3 +94,16 @@ void fct_ale_a1_a2_accelerated(const int nNodes, const int nElements, struct gpu
         return;
     }
 }
+
+void transfer_mesh_(void** ret, int * host_ptr, int * size);
+{
+    struct gpuMemory * gpumem = allocate((void*)host_ptr, (*size) * sizeof(int));
+    if ( transferToDevice(gpuMemory) )
+    {
+        *ret = (void*)gpumem;
+    }
+    else
+    {
+        *ret = nullptr;
+    }
+}

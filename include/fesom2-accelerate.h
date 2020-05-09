@@ -118,6 +118,8 @@ void fct_ale_a1_reference_( int * nNodes, int * nLevels_nod2D, int * maxLevels_p
 
 #ifdef __CUDACC__
 
+void transfer_mesh_(void** ret, int * host_ptr, int * size);
+
 /**
  GPU CUDA implementation of step a1 of FCT_ALE.
  This step computes the maximum and minimum between the old solution and the updated low-order solution per node.
@@ -166,6 +168,10 @@ void fct_ale_a2_accelerated(const int nElements, struct gpuMemory * nLevels_elem
  @param stream The CUDA stream associated with the transfer
 */
 void fct_ale_a1_a2_accelerated(const int nNodes, const int nElements, struct gpuMemory * nLevels_nod2D, struct gpuMemory * nLevels_elem, struct gpuMemory * elementNodes, struct gpuMemory * fct_ttf_max, struct gpuMemory * fct_ttf_min, struct gpuMemory * fct_low_order, struct gpuMemory * ttf, struct gpuMemory * UV_rhs, bool synchronous = true, cudaStream_t stream = (cudaStream_t) 0);
+
+#else
+
+void transfer_mesh_(void** ret, int * host_ptr, int * size){}
 
 #endif /*__CUDACC__*/
 
