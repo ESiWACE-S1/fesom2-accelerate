@@ -9,6 +9,7 @@
 using real_type = double;
 
 #ifdef __CUDACC__
+using real2_type = double2;
 
 /**
  A structure to map GPU and host memory.
