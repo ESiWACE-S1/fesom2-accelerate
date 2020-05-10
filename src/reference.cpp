@@ -288,7 +288,7 @@ void fct_ale(int myDim_nod2D, int eDim_nod2D, int * nLevels_nod2D, real_type * f
 void fct_ale_pre_comm_( int* alg_state, real_type* fct_ttf_max, real_type*  fct_ttf_min, 
                         real_type*  fct_plus, real_type*  fct_minus, real_type* tvert_max, 
                         real_type*  tvert_min, real_type* ttf, real_type* fct_LO, real_type*  fct_adf_v,
-                        real_type* fct_adf_h, real_type* UV_rhs, real_type* area, int* myDim_nod2D, int* eDim_nod2D, 
+                        real_type* fct_adf_h, real_type* UV_rhs, real_type* area_inv, int* myDim_nod2D, int* eDim_nod2D, 
                         int* myDim_elem2D, int* myDim_edge2D, int* nl, int* nlevels_nod2D, int* nlevels_elem2D, 
                         int* elem2D_nodes, int* nod_in_elem2D_num, int* nod_in_elem2D, int* nod_in_elem2D_dim, 
                         int* nod2D_edges, int * elem2D_edges, int* vlimit, real_type* flux_eps, 
@@ -308,7 +308,7 @@ void fct_ale_pre_comm_( int* alg_state, real_type* fct_ttf_max, real_type*  fct_
                                 nod_in_elem2D_num, nod_in_elem2D_dim);
         *alg_state = 4;
         fct_ale_a4_reference_(  myDim_nod2D, nlevels_nod2D, nlevels_elem2D, nl, myDim_edge2D, fct_plus, fct_minus,
-                                fct_adf_h, area, fct_ttf_min, fct_ttf_min, nod2D_edges, elem2D_edges, flux_eps, 
+                                fct_adf_h, area_inv, fct_ttf_min, fct_ttf_min, nod2D_edges, elem2D_edges, flux_eps, 
                                 dt);
         *alg_state = 5;
     }
@@ -419,7 +419,7 @@ void fct_ale_a3_reference_( int * nNodes2D, int * nLevels_nod2D, int * nl, real_
 
 void fct_ale_a4_reference_( int * nNodes2D, int * nLevels_nod2D, int * nLevels_elem2D, int * nl, int * nEdges2D,
                             real_type * fct_plus, real_type * fct_minus, real_type * fct_adf_h, 
-                            real_type * area, real_type * fct_ttf_max, real_type * fct_ttf_min, 
+                            real_type * area_inv, real_type * fct_ttf_max, real_type * fct_ttf_min, 
                             int * edges, int * edge_tri, real_type * flux_eps, real_type * dt )
 {
     int maxLevels = *nl - 1;
@@ -448,10 +448,10 @@ void fct_ale_a4_reference_( int * nNodes2D, int * nLevels_nod2D, int * nLevels_e
         for ( int node2D_z = 0; node2D_z < nLevels_nod2D[node2D] - 1; node2D_z++ )
         {
             int item = node2D * maxLevels + node2D_z;
-            real_type inv_area = (*dt) / area[item];
-            real_type flux = fct_plus[item] * inv_area + (*flux_eps);
+            int area_item = node2D * ( maxLevels + 1 ) + node2D_z;
+            real_type flux = fct_plus[item] * (*dt) * area_inv[area_item] + (*flux_eps);
             fct_plus[item] = std::min(real_type(1), fct_ttf_max[item] / flux);
-            flux = fct_minus[item] * inv_area - (*flux_eps);
+            flux = fct_minus[item] * (*dt) * area_inv[area_item] - (*flux_eps);
             fct_minus[item] = std::min(real_type(1), fct_ttf_min[item] / flux);
         }
     }
