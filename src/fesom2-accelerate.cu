@@ -126,16 +126,16 @@ void fct_ale_pre_comm_acc_( int* alg_state, void* fct_ttf_max, void*  fct_ttf_mi
     {
         return;
     }
-    status = transferToDevice(*static_cast<gpuMemory*>(ttf_dev));
+    status = transferToDevice(*static_cast<gpuMemory*>(ttf));
     if ( !status )
     {
         return;
     }
-    real_type* fct_lo_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(fct_lo_dev))->device_pointer);
-    real_type* ttf_dev    = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(ttf))->device_pointer);
-    real_type* fct_ttf_max_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(fct_ttf_max))->device_pointer);
-    real_type* fct_ttf_min_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(fct_ttf_min))->device_pointer);
-    real_type* UV_rhs_dev    = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(UV_rhs))->device_pointer);
+    real_type* fct_lo_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(fct_LO)->device_pointer);
+    real_type* ttf_dev    = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(ttf)->device_pointer);
+    real_type* fct_ttf_max_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(fct_ttf_max)->device_pointer);
+    real_type* fct_ttf_min_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(fct_ttf_min)->device_pointer);
+    real_type* UV_rhs_dev    = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(UV_rhs)->device_pointer);
     int* nlevels_nod2D_dev = reinterpret_cast<int*>(static_cast<gpuMemory*>(nlevels_nod2D)->device_pointer);
     int* nlevels_elem2D_dev = reinterpret_cast<int*>(static_cast<gpuMemory*>(nlevels_elem2D)->device_pointer);
     int* elem2D_nodes_dev = reinterpret_cast<int*>(static_cast<gpuMemory*>(elem2D_nodes)->device_pointer);
@@ -145,7 +145,7 @@ void fct_ale_pre_comm_acc_( int* alg_state, void* fct_ttf_max, void*  fct_ttf_mi
     *alg_state = 1;
     fct_ale_a2<<< dim3(*myDim_elem2D), dim3(32) >>>(nlevels_elem2D_dev, elementNodes_dev, UV_rhs_dev, 
                                                     fct_ttf_max_dev, fct_ttf_min_dev);
-    status = transferToHost(*UV_rhs, synchronous, stream);
+    status = transferToHost(*UV_rhs);
     if ( !status )
     {
         return;
