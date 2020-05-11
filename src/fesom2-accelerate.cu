@@ -108,9 +108,21 @@ void transfer_mesh_(void** ret, int* host_ptr, int* size)
     }
 }
 
+void alloc_var_(void** ret, int* host_ptr, int* size)
+{
+    struct gpuMemory* gpumem = allocate((void*)host_ptr, (*size) * sizeof(real_type));
+    *ret = (void*)gpumem;
+}
+
+void reserve_var_(void** ret, int* size)
+{
+    struct gpuMemory* gpumem = allocate(nullptr, (*size) * sizeof(real_type));
+    *ret = (void*)gpumem;
+}
+
 void fct_ale_pre_comm_acc_( int* alg_state, void* fct_ttf_max, void*  fct_ttf_min, 
                             void*  fct_plus, void*  fct_minus, void* tvert_max, 
-                            void*  tvert_min, void* ttf, void* fct_LO, void*  fct_adf_v,
+                            void*  tvert_min, void* ttf, real_type* ttf_vals, void* fct_LO, void*  fct_adf_v,
                             void* fct_adf_h, void* UV_rhs, void* area_inv, int* myDim_nod2D, 
                             int* eDim_nod2D, int* myDim_elem2D, int* myDim_edge2D, int* nl, void* nlevels_nod2D, 
                             void* nlevels_elem2D, void* elem2D_nodes, void* nod_in_elem2D_num, void* nod_in_elem2D, 
@@ -120,17 +132,21 @@ void fct_ale_pre_comm_acc_( int* alg_state, void* fct_ttf_max, void*  fct_ttf_mi
     *alg_state = 0;
     bool status = true;
     int nNodes = (*myDim_nod2D) + (*eDim_nod2D);
-    struct gpuMemory* fct_LO_dev = allocate((void*)fct_LO, nNodes * sizeof(real_type));
+
     status = transferToDevice(*static_cast<gpuMemory*>(fct_LO));
     if ( !status )
     {
         return;
     }
-    status = transferToDevice(*static_cast<gpuMemory*>(ttf));
+
+    struct gpuMemory* ttf_gpu = static_cast<gpuMemory*>(ttf);
+    ttf_gpu->host_pointer = (void*)ttf_vals;
+    status = transferToDevice(*ttf_gpu);
     if ( !status )
     {
         return;
     }
+
     real_type* fct_lo_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(fct_LO)->device_pointer);
     real_type* ttf_dev    = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(ttf)->device_pointer);
     real_type* fct_ttf_max_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(fct_ttf_max)->device_pointer);

@@ -315,7 +315,7 @@ void fct_ale_pre_comm_( int* alg_state, real_type* fct_ttf_max, real_type*  fct_
 }
 
 void fct_ale_a1_reference_( int * nNodes2D, int * nLevels_nod2D, int * nl, real_type * fct_ttf_max, 
-                            real_type * fct_ttf_min,  real_type * fct_low_order, real_type * ttf )
+                            real_type * fct_ttf_min,  real_type * fct_lo, real_type * ttf )
 {
     int nNodes = *nNodes2D;
     int maxLevels = *nl - 1;
@@ -324,8 +324,8 @@ void fct_ale_a1_reference_( int * nNodes2D, int * nLevels_nod2D, int * nl, real_
         for ( int node2D_z = 0; node2D_z < nLevels_nod2D[node2D] - 1; node2D_z++ )
         {
             int item = node2D * maxLevels + node2D_z;
-            fct_ttf_max[item] = std::max(fct_low_order[item], ttf[item]);
-            fct_ttf_min[item] = std::min(fct_low_order[item], ttf[item]);
+            fct_ttf_max[item] = std::max(fct_lo[item], ttf[item]);
+            fct_ttf_min[item] = std::min(fct_lo[item], ttf[item]);
         }
     }
 }
