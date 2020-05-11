@@ -5,9 +5,9 @@ import argparse
 
 def generate_code(tuning_parameters):
     code = \
-        "__global__ void fct_ale_a1(const <%REAL_TYPE%> * __restrict__ fct_low_order, const <%REAL_TYPE%> * __restrict__ ttf, const int * __restrict__ nLevels, <%REAL_TYPE%> * __restrict__ fct_ttf_max, <%REAL_TYPE%> * __restrict__ fct_ttf_min)\n" \
+        "__global__ void fct_ale_a1(const int maxLevels, const <%REAL_TYPE%> * __restrict__ fct_low_order, const <%REAL_TYPE%> * __restrict__ ttf, const int * __restrict__ nLevels, <%REAL_TYPE%> * __restrict__ fct_ttf_max, <%REAL_TYPE%> * __restrict__ fct_ttf_min)\n" \
         "{\n" \
-        "const <%INT_TYPE%> node = (blockIdx.x * <%MAX_LEVELS%>);\n" \
+        "const <%INT_TYPE%> node = (blockIdx.x * maxLevels);\n" \
         "\n" \
         "for ( <%INT_TYPE%> level = threadIdx.x; level < nLevels[blockIdx.x]; level += <%BLOCK_SIZE%> )\n" \
         "{\n" \
@@ -23,7 +23,6 @@ def generate_code(tuning_parameters):
         "fct_ttf_min[node + level + <%OFFSET%>] = fmin(fct_low_order_item, ttf_item);\n"
     code = code.replace("<%INT_TYPE%>", tuning_parameters["int_type"].replace("_", " "))
     code = code.replace("<%REAL_TYPE%>", tuning_parameters["real_type"])
-    code = code.replace("<%MAX_LEVELS%>", str(tuning_parameters["max_levels"]))
     if tuning_parameters["tiling_x"] > 1:
         code = code.replace("<%BLOCK_SIZE%>", str(tuning_parameters["block_size_x"] * tuning_parameters["tiling_x"]))
     else:
@@ -75,10 +74,10 @@ def tune(nodes, max_levels, max_tile, real_type):
     levels = numpy.zeros(nodes).astype(numpy.int32)
     for node in range(0, nodes):
         levels[node] = numpy.random.randint(0, max_levels)
-    arguments = [fct_low_order, ttf, levels, fct_ttf_max, fct_ttf_min]
+    arguments = [numpy.int32(max_levels), fct_low_order, ttf, levels, fct_ttf_max, fct_ttf_min]
     # Reference
     reference(nodes, levels, max_levels, fct_low_order, ttf, fct_ttf_max_control, fct_ttf_min_control)
-    arguments_control = [None, None, None, fct_ttf_max_control, fct_ttf_min_control]
+    arguments_control = [None, None, None, None, fct_ttf_max_control, fct_ttf_min_control]
     # Tuning
     results, environment = tune_kernel("fct_ale_a1", generate_code, "{} * block_size_x".format(nodes), arguments, tuning_parameters, lang="CUDA", answer=arguments_control, verify=verify, restrictions=constraints, quiet=True)
     return results
