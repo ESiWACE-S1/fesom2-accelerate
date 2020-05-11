@@ -1,12 +1,9 @@
-
-/*
- Code generated running fct_ale_a1.py for 5576658 nodes and 48 maximum levels.
-*/
-__global__ void fct_ale_a1(const double * __restrict__ fct_low_order, const double * __restrict__ ttf, const int * __restrict__ nLevels, double * fct_ttf_max, double * fct_ttf_min)
+/* Block size X: 32 */
+__global__ void fct_ale_a1(const int maxLevels, const double * __restrict__ fct_low_order, const double * __restrict__ ttf, const int * __restrict__ nLevels, double * __restrict__ fct_ttf_max, double * __restrict__ fct_ttf_min)
 {
-const unsigned int node = (blockIdx.x * 48);
+const int node = (blockIdx.x * maxLevels);
 
-for ( unsigned int level = threadIdx.x; level < nLevels[blockIdx.x]; level += 32 )
+for ( int level = threadIdx.x; level < nLevels[blockIdx.x]; level += 32 )
 {
 double fct_low_order_item = 0;
 double ttf_item = 0;
