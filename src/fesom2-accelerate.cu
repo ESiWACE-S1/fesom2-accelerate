@@ -159,7 +159,7 @@ void fct_ale_pre_comm_acc_( int* alg_state, void* fct_ttf_max, void*  fct_ttf_mi
     fct_ale_a1<<< dim3(nNodes), dim3(32) >>>(fct_lo_dev, ttf_dev, nlevels_nod2D_dev, fct_ttf_max_dev, 
                                              fct_ttf_min_dev);
     *alg_state = 1;
-    fct_ale_a2<<< dim3(*myDim_elem2D), dim3(32) >>>(nlevels_elem2D_dev, elementNodes_dev, UV_rhs_dev, 
+    fct_ale_a2<<< dim3(*myDim_elem2D), dim3(32) >>>(nlevels_elem2D_dev, elem2D_nodes_dev, UV_rhs_dev, 
                                                     fct_ttf_max_dev, fct_ttf_min_dev);
     status = transferToHost(*UV_rhs);
     if ( !status )
