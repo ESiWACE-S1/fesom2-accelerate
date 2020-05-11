@@ -455,20 +455,6 @@ void fct_ale_a4_reference_( int * nNodes2D, int * nLevels_nod2D, int * nLevels_e
             fct_minus[item] = std::min(real_type(1), fct_ttf_min[item] / flux);
         }
     }
-    {
-    int nNodes = *nNodes2D;
-    int maxLevels = *nl - 1;
-    for ( int node2D = 0; node2D < nNodes; node2D++ )
-    {
-        for ( int node2D_z = 0; node2D_z < nLevels_nod2D[node2D] - 1; node2D_z++ )
-        {
-            int item = node2D * maxLevels + node2D_z;
-            fct_ttf_max[item] = std::max(fct_low_order[item], ttf[item]);
-            fct_ttf_min[item] = std::min(fct_low_order[item], ttf[item]);
-        }
-    }
-}
-
 }
 
 void stress2rhs(int myDim_nod2D, int myDim_elem2D, int elem2D_nodes_size, real_type * U_rhs_ice, real_type * V_rhs_ice, real_type * ice_strength, int * elem2D_nodes, real_type * elem_area, real_type * sigma11, real_type * sigma12, real_type * sigma22, real_type * gradient_sca, real_type * metric_factor, real_type * inv_areamass, real_type * rhs_a, real_type * rhs_m)
