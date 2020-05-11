@@ -74,7 +74,7 @@ def tune(nodes, max_levels, max_tile, real_type):
     levels = numpy.zeros(nodes).astype(numpy.int32)
     for node in range(0, nodes):
         levels[node] = numpy.random.randint(0, max_levels)
-    arguments = [max_levels, fct_low_order, ttf, levels, fct_ttf_max, fct_ttf_min]
+    arguments = [numpy.int32(max_levels), fct_low_order, ttf, levels, fct_ttf_max, fct_ttf_min]
     # Reference
     reference(nodes, levels, max_levels, fct_low_order, ttf, fct_ttf_max_control, fct_ttf_min_control)
     arguments_control = [None, None, None, None, fct_ttf_max_control, fct_ttf_min_control]
