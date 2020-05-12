@@ -35,7 +35,7 @@ def generate_code(tuning_parameters):
     compute_block_vector = \
         "if ( level + <%OFFSET%> < nLevels[blockIdx.x] )\n" \
         "{\n" \
-        "<%REAL_TYPE%> temp = make_<%REAL_TYPE%>2(0.0, 0.0);\n" \
+        "<%REAL_TYPE%><%VECTOR_SIZE%> temp = make_<%REAL_TYPE%>2(0.0, 0.0);\n" \
         "temp.x = fmax(fct_ttf_max[element_node0_index + level + <%OFFSET%>], fct_ttf_max[element_node1_index + level + <%OFFSET%>]);\n" \
         "temp.x = fmax(temp.x, fct_ttf_max[element_node2_index + level + <%OFFSET%>]);\n" \
         "temp.y = fmin(fct_ttf_min[element_node0_index + level + <%OFFSET%>], fct_ttf_min[element_node1_index + level + <%OFFSET%>]);\n" \
