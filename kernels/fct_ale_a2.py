@@ -7,7 +7,7 @@ def generate_code(tuning_parameters):
     code = \
         "__global__ void fct_ale_a2(const int maxLevels, const int * __restrict__ nLevels, const int * __restrict__ elementNodes, <%REAL_TYPE%><%VECTOR_SIZE%> * __restrict__ UV_rhs, const <%REAL_TYPE%> * __restrict__ fct_ttf_max, const <%REAL_TYPE%> * __restrict__ fct_ttf_min)\n" \
         "{\n" \
-        "const <%INT_TYPE%> element_index = (blockIdx.x * maxLevels);\n" \
+        "const <%INT_TYPE%> element_index = (blockIdx.x * maxLevels * 2);\n" \
         "const <%INT_TYPE%> element_node0_index = elementNodes[(blockIdx.x * 3)] * maxLevels;\n" \
         "const <%INT_TYPE%> element_node1_index = elementNodes[(blockIdx.x * 3) + 1] * maxLevels;\n" \
         "const <%INT_TYPE%> element_node2_index = elementNodes[(blockIdx.x * 3) + 2] * maxLevels;\n" \
@@ -78,6 +78,7 @@ def generate_code(tuning_parameters):
         code = code.replace("<%VECTOR_SIZE%>", "")
     else:
         code = code.replace("<%VECTOR_SIZE%>", str(tuning_parameters["vector_size"]))
+        code = code.replace("maxLevels * 2", "maxLevels")
     return code
 
 def reference(elements, levels, max_levels, nodes, UV_rhs, fct_ttf_max, fct_ttf_min, real_type):
