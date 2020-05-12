@@ -1,4 +1,3 @@
-
 #include <fesom2-accelerate.h>
 #include <vector_types.h>
 
@@ -6,6 +5,7 @@
 // CUDA kernels
 extern __global__ void fct_ale_a1(const int maxLevels, const double * __restrict__ fct_low_order, const double * __restrict__ ttf, const int * __restrict__ nLevels, double * fct_ttf_max, double * fct_ttf_min);
 extern __global__ void fct_ale_a2(const int maxLevels, const int * __restrict__ nLevels, const int * __restrict__ elementNodes, double2 * __restrict__ UV_rhs, const double * __restrict__ fct_ttf_max, const double * __restrict__ fct_ttf_min);
+extern __global__ void fct_ale_a2b(const int maxLevels, const int * __restrict__ nLevels, const int * __restrict__ elementNodes, double * __restrict__ UV_rhs, const double * __restrict__ fct_ttf_max, const double * __restrict__ fct_ttf_min, double bignumber);
 
 struct gpuMemory * allocate(void * hostMemory, std::size_t size)
 {
@@ -156,12 +156,13 @@ void fct_ale_pre_comm_acc_( int* alg_state, void* fct_ttf_max, void*  fct_ttf_mi
     int* nlevels_elem2D_dev = reinterpret_cast<int*>(static_cast<gpuMemory*>(nlevels_elem2D)->device_pointer);
     int* elem2D_nodes_dev = reinterpret_cast<int*>(static_cast<gpuMemory*>(elem2D_nodes)->device_pointer);
 
-    fct_ale_a1<<< dim3(nNodes), dim3(32) >>>(fct_lo_dev, ttf_dev, nlevels_nod2D_dev, fct_ttf_max_dev, 
+    int maxLevels = *nl - 1;
+    fct_ale_a1<<< dim3(nNodes), dim3(32) >>>(maxLevels, fct_lo_dev, ttf_dev, nlevels_nod2D_dev, fct_ttf_max_dev, 
                                              fct_ttf_min_dev);
     *alg_state = 1;
-    fct_ale_a2<<< dim3(*myDim_elem2D), dim3(32) >>>(nlevels_elem2D_dev, elem2D_nodes_dev, UV_rhs_dev, 
-                                                    fct_ttf_max_dev, fct_ttf_min_dev);
-    status = transferToHost(*UV_rhs);
+    fct_ale_a2b<<< dim3(*myDim_elem2D), dim3(32) >>>(maxLevels,nlevels_elem2D_dev, elem2D_nodes_dev, UV_rhs_dev, 
+                                                    fct_ttf_max_dev, fct_ttf_min_dev, *bignumber);
+    status = transferToHost(*static_cast<gpuMemory*>(UV_rhs));
     if ( !status )
     {
         return;
