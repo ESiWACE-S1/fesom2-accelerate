@@ -337,6 +337,8 @@ end subroutine fct_ale
     - Two dimensional array, containing the two vertices of an edge.
 - nod_in_elem2D : *integer array*
     - Two dimensional array, containing the indices of the elements of which a node is surrounded.
+- nod_in_elem2D_num : *integer array*
+    - One dimensional integer array, containing the maximum number of elements of which a node is surrounded.
 
 #### Levels (vertical layers)
 - nlevels : *integer array*
