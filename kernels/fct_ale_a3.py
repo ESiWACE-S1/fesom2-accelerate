@@ -6,14 +6,20 @@ import argparse
 def generate_code(tuning_parameters):
     pass
 
-def reference(vlimit, nodes, levels, max_levels, uv_rhs, fct_ttf_max, fct_ttf_min, fct_lo, real_type):
+def reference(vlimit, nodes, levels, max_levels, elements_in_node, number_elements_in_node, max_elements_in_node, uv_rhs, fct_ttf_max, fct_ttf_min, fct_lo, real_type):
     tvert_max = 0
     tvert_min = 0
     if vlimit == 1:
         for node in range(0, nodes):
             for level in range(0, levels[node] - 1):
-                tvert_max[level] = None
-                tvert_min[level] = None
+                max_temp = numpy.finfo(real_type).min
+                min_temp = numpy.finfo(real_type).max
+                for element in range(0, number_elements_in_node[node]):
+                    item = (elements_in_node[(node * max_elements_in_node) + element] * max_levels * 2) + (level * 2)
+                    max_temp = max(max_temp, uv_rhs[item])
+                    min_temp = min(min_temp, uv_rhs[item + 1])
+                tvert_max[level] = max_temp
+                tvert_min[level] = min_temp
             # Surface level
             fct_ttf_max[(node * max_levels)] = tvert_max[0] - fct_lo[(node * max_levels)]
             fct_ttf_min[(node * max_levels)] = tvert_min[0] - fct_lo[(node * max_levels)]
@@ -39,6 +45,13 @@ def verify(control_data, data, atol=None):
     return numpy.allclose(control_data, data, atol)
 
 def tune(nodes, max_levels, vlimit, max_tile, real_type):
+    numpy_real_type = None
+    if real_type == "float":
+        numpy_real_type = numpy.float32
+    elif real_type == "double":
+        numpy_real_type = numpy.float64
+    else:
+        raise ValueError
     pass
 
 def parse_command_line():
