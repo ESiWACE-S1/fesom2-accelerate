@@ -15,8 +15,9 @@ def generate_code(tuning_parameters):
         "__global__ void fct_ale_a3(const int maxLevels, const int maxElements, const int * __restrict__ nLevels, const int * __restrict__ elements_in_node, const int * __restrict__ number_elements_in_node, const <%REAL_TYPE%><%VECTOR_SIZE%> * __restrict__ UV_rhs, <%REAL_TYPE%> * __restrict__ fct_ttf_max, <%REAL_TYPE%> * __restrict__ fct_ttf_min, const <%REAL_TYPE%> * __restrict__ fct_lo)\n" \
         "{\n" \
         "<%INT_TYPE%> item = 0;\n" \
-        "extern __shared__ <%REAL_TYPE%> tvert_max[];\n" \
-        "extern __shared__ <%REAL_TYPE%> tvert_min[];\n" \
+        "extern __shared__ <%REAL_TYPE%> sharedBuffer[];\n" \
+        "<%REAL_TYPE%> * tvert_max = (<%REAL_TYPE%> *)(sharedBuffer);\n" \
+        "<%REAL_TYPE%> * tvert_min = (<%REAL_TYPE%> *)(&sharedBuffer[<%BYTES%> * maxLevels]);\n" \
         "/* Compute tvert_max and tvert_min per level */\n" \
         "for ( <%INT_TYPE%> level = threadIdx.x; level < nLevels[blockIdx.x]; level += <%BLOCK_SIZE%> )\n" \
         "{\n" \
@@ -78,6 +79,7 @@ def generate_code(tuning_parameters):
         code = code.replace("<%BLOCK_SIZE%>", str(tuning_parameters["block_size_x"]))
     code = code.replace("<%REAL_TYPE%>", tuning_parameters["real_type"])
     code = code.replace("<%INT_TYPE%>", tuning_parameters["int_type"].replace("_", " "))
+    code = code.replace("<%BYTES%>", numpy.dtype(numpy_real_type).itemsize)
     if tuning_parameters["vector_size"] == 1:
         code = code.replace("<%VECTOR_SIZE%>", "")
     return code
