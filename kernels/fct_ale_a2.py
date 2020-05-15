@@ -127,7 +127,7 @@ def tune(elements, nodes, max_levels, max_tile, real_type):
     levels = numpy.zeros(elements).astype(numpy.int32)
     element_nodes = numpy.zeros(elements * 3).astype(numpy.int32)
     for element in range(0, elements):
-        levels[element] = numpy.random.randint(0, max_levels)
+        levels[element] = numpy.random.randint(3, max_levels)
         element_nodes[(element * 3)] = numpy.random.randint(0, nodes)
         element_nodes[(element * 3) + 1] = numpy.random.randint(0, nodes)
         element_nodes[(element * 3) + 2] = numpy.random.randint(0, nodes)
