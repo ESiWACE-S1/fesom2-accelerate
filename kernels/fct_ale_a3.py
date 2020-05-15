@@ -87,19 +87,19 @@ def generate_code(tuning_parameters):
     return code
 
 def reference(vlimit, nodes, levels, max_levels, elements_in_node, number_elements_in_node, max_elements_in_node, uv_rhs, fct_ttf_max, fct_ttf_min, fct_lo, real_type):
-    tvert_max = 0
-    tvert_min = 0
     if vlimit == 1:
         for node in range(0, nodes):
-            for level in range(0, levels[node] - 1):
+            tvert_max = list()
+            tvert_min = list()
+            for level in range(0, levels[node]):
                 max_temp = numpy.finfo(real_type).min
                 min_temp = numpy.finfo(real_type).max
                 for element in range(0, number_elements_in_node[node]):
                     item = (elements_in_node[(node * max_elements_in_node) + element] * max_levels * 2) + (level * 2)
                     max_temp = max(max_temp, uv_rhs[item])
                     min_temp = min(min_temp, uv_rhs[item + 1])
-                tvert_max[level] = max_temp
-                tvert_min[level] = min_temp
+                tvert_max.append(max_temp)
+                tvert_min.append(min_temp)
             # Surface level
             fct_ttf_max[(node * max_levels)] = tvert_max[0] - fct_lo[(node * max_levels)]
             fct_ttf_min[(node * max_levels)] = tvert_min[0] - fct_lo[(node * max_levels)]
@@ -153,8 +153,8 @@ def tune(elements, nodes, max_elements, max_levels, vlimit, max_tile, real_type)
     elements_in_node = numpy.zeros(nodes * max_elements).astype(numpy.int32)
     number_elements_in_node = numpy.zeros(nodes).astype(numpy.int32)
     for node in range(0, nodes):
-        levels[node] = numpy.random.randint(0, max_levels)
-        number_elements_in_node[node] = numpy.random.randint(0, max_elements)
+        levels[node] = numpy.random.randint(3, max_levels)
+        number_elements_in_node[node] = numpy.random.randint(3, max_elements)
         for element in range(0, number_elements_in_node[node]):
             elements_in_node[(node * max_elements) + element] = numpy.random.randint(0, nodes)
     arguments = [numpy.int32(max_levels), numpy.int32(max_elements), levels, elements_in_node, number_elements_in_node, uv_rhs, fct_ttf_max, fct_ttf_min, fct_lo]
