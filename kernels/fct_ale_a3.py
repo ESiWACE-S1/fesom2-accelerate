@@ -136,6 +136,8 @@ def tune(elements, nodes, max_elements, max_levels, vlimit, max_tile, real_type)
     tuning_parameters["block_size_x"] = [32 * i for i in range(1, 33)]
     tuning_parameters["tiling_x"] = [i for i in range(1, max_tile)]
     tuning_parameters["vector_size"] = [1]
+    shared_memory_args = dict()
+    shared_memory_args["size"] = max_levels
     constraints = list()
     constraints.append("block_size_x * tiling_x <= max_levels")
     # Memory allocation and initialization
@@ -158,7 +160,7 @@ def tune(elements, nodes, max_elements, max_levels, vlimit, max_tile, real_type)
     reference(vlimit, nodes, levels, max_levels, elements_in_node, number_elements_in_node, max_elements, uv_rhs, fct_ttf_max_control, fct_ttf_min_control, fct_lo, numpy_real_type)
     arguments_control = [None, None, None, None, None, None, fct_ttf_max_control, fct_ttf_min_control, None]
     # Tuning
-    results, environment = tune_kernel("fct_ale_a3", generate_code, "{} * block_size_x".format(nodes), arguments, tuning_parameters, lang="CUDA", answer=arguments_control, verify=verify, restrictions=constraints, quiet=True)
+    results, environment = tune_kernel("fct_ale_a3", generate_code, "{} * block_size_x".format(nodes), arguments, tuning_parameters, smem_args=shared_memory_args, lang="CUDA", answer=arguments_control, verify=verify, restrictions=constraints, quiet=True)
     return results
 
 def parse_command_line():
