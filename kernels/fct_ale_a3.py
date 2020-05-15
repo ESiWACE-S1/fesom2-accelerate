@@ -79,7 +79,7 @@ def generate_code(tuning_parameters):
         code = code.replace("<%BLOCK_SIZE%>", str(tuning_parameters["block_size_x"]))
     code = code.replace("<%REAL_TYPE%>", tuning_parameters["real_type"])
     code = code.replace("<%INT_TYPE%>", tuning_parameters["int_type"].replace("_", " "))
-    code = code.replace("<%BYTES%>", numpy.dtype(numpy_real_type).itemsize)
+    code = code.replace("<%BYTES%>", str(numpy.dtype(numpy_real_type).itemsize))
     if tuning_parameters["vector_size"] == 1:
         code = code.replace("<%VECTOR_SIZE%>", "")
     return code
