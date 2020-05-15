@@ -40,7 +40,7 @@ def generate_code(tuning_parameters):
         "fct_ttf_min[item + (nLevels[blockIdx.x] - 1)] = tvert_min[nLevels[blockIdx.x] - 1] - fct_lo[item + (nLevels[blockIdx.x] - 1)];\n" \
         "}\n" \
         "}\n"
-    reduction = \
+    reduction_block = \
         "item = (elements_in_node[(blockIdx.x * maxElements)] * maxLevels * 2) + ((level + <%OFFSET%>) * 2);\n" \
         "tvert_max_temp = UV_rhs[item];\n" \
         "tvert_min_temp = UV_rhs[item + 1];\n" \
@@ -52,13 +52,39 @@ def generate_code(tuning_parameters):
         "}\n" \
         "tvert_max[level + <%OFFSET%>] = tvert_max_temp;\n" \
         "tvert_min[level + <%OFFSET%>] = tvert_min_temp;\n"
-    update = \
+    update_block = \
         "temp = fmax(tvert_max[(level + <%OFFSET%>) - 1], tvert_max[level + <%OFFSET%>]);\n" \
         "temp = fmax(temp, tvert_max[(level + <%OFFSET%>) + 1]);\n" \
         "fct_ttf_max[item + level + <%OFFSET%>] = temp - fct_lo[item + level + <%OFFSET%>];\n" \
         "temp = fmin(tvert_min[(level + <%OFFSET%>) - 1], tvert_min[level + <%OFFSET%>]);\n" \
         "temp = fmin(temp, tvert_min[(level + <%OFFSET%>) + 1]);\n" \
         "fct_ttf_min[item + level + <%OFFSET%>] = temp - fct_lo[item + level + <%OFFSET%>];\n"
+    reduction = str()
+    update = str()
+    for tile in range(0, tuning_parameters["tiling_x"]):
+        if tile == 0:
+            if tuning_parameters["vector_size"] == 1:
+                reduction = reduction + reduction_block.replace(" + <%OFFSET%>", "")
+                update = update + update_block.replace(" + <%OFFSET%>", "")
+            else:
+                pass
+        else:
+            if tuning_parameters["vector_size"] == 1:
+                reduction = reduction + reduction_block.replace("<%OFFSET%>", str(tuning_parameters["block_size_x"] * tile))
+                update = update + update_block.replace("<%OFFSET%>", str(tuning_parameters["block_size_x"] * tile))
+            else:
+                pass
+    if tuning_parameters["tiling_x"] > 1:
+        code = code.replace("<%BLOCK_SIZE%>", str(tuning_parameters["block_size_x"] * tuning_parameters["tiling_x"]))
+    else:
+        code = code.replace("<%BLOCK_SIZE%>", str(tuning_parameters["block_size_x"]))
+    code = code.replace("<%REAL_TYPE%>", tuning_parameters["real_type"])
+    code = code.replace("<%INT_TYPE%>", tuning_parameters["int_type"].replace("_", " "))
+    if tuning_parameters["vector_size"] == 1:
+        code = code.replace("<%VECTOR_SIZE%>", "")
+    else:
+        pass
+    return code
 
 def reference(vlimit, nodes, levels, max_levels, elements_in_node, number_elements_in_node, max_elements_in_node, uv_rhs, fct_ttf_max, fct_ttf_min, fct_lo, real_type):
     tvert_max = 0
