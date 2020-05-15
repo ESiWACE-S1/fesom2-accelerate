@@ -66,14 +66,12 @@ def generate_code(tuning_parameters):
             if tuning_parameters["vector_size"] == 1:
                 reduction = reduction + reduction_block.replace(" + <%OFFSET%>", "")
                 update = update + update_block.replace(" + <%OFFSET%>", "")
-            else:
-                pass
         else:
             if tuning_parameters["vector_size"] == 1:
                 reduction = reduction + reduction_block.replace("<%OFFSET%>", str(tuning_parameters["block_size_x"] * tile))
                 update = update + update_block.replace("<%OFFSET%>", str(tuning_parameters["block_size_x"] * tile))
-            else:
-                pass
+    code = code.replace("<%REDUCTION%>", reduction)
+    code = code.replace("<%UPDATE%>", update)
     if tuning_parameters["tiling_x"] > 1:
         code = code.replace("<%BLOCK_SIZE%>", str(tuning_parameters["block_size_x"] * tuning_parameters["tiling_x"]))
     else:
@@ -82,8 +80,6 @@ def generate_code(tuning_parameters):
     code = code.replace("<%INT_TYPE%>", tuning_parameters["int_type"].replace("_", " "))
     if tuning_parameters["vector_size"] == 1:
         code = code.replace("<%VECTOR_SIZE%>", "")
-    else:
-        pass
     return code
 
 def reference(vlimit, nodes, levels, max_levels, elements_in_node, number_elements_in_node, max_elements_in_node, uv_rhs, fct_ttf_max, fct_ttf_min, fct_lo, real_type):
