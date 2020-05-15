@@ -20,8 +20,8 @@ def generate_code(tuning_parameters):
         "/* Compute tvert_max and tvert_min per level */\n" \
         "for ( <%INT_TYPE%> level = threadIdx.x; level < nLevels[blockIdx.x]; level += <%BLOCK_SIZE%> )\n" \
         "{\n" \
-        "<%REAL_TYPE%> tvert_max_temp = 0.0;" \
-        "<%REAL_TYPE%> tvert_min_temp = 0.0;" \
+        "<%REAL_TYPE%> tvert_max_temp = 0.0;\n" \
+        "<%REAL_TYPE%> tvert_min_temp = 0.0;\n" \
         "<%REDUCTION%>" \
         "}\n" \
         "__syncthreads();\n" \
@@ -29,7 +29,7 @@ def generate_code(tuning_parameters):
         "item = blockIdx.x * maxLevels;\n" \
         "for ( <%INT_TYPE%> level = threadIdx.x + 1; level < nLevels[blockIdx.x] - 2; level += <%BLOCK_SIZE%> )\n" \
         "{\n" \
-        "<%REAL_TYPE%> temp = 0.0;" \
+        "<%REAL_TYPE%> temp = 0.0;\n" \
         "<%UPDATE%>" \
         "}\n" \
         "if ( threadIdx.x == 0 )\n" \
