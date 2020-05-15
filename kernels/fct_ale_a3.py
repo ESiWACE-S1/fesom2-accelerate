@@ -137,7 +137,7 @@ def tune(elements, nodes, max_elements, max_levels, vlimit, max_tile, real_type)
     tuning_parameters["tiling_x"] = [i for i in range(1, max_tile)]
     tuning_parameters["vector_size"] = [1]
     shared_memory_args = dict()
-    shared_memory_args["size"] = max_levels
+    shared_memory_args["size"] = 2 * max_levels * numpy.dtype(numpy_real_type).itemsize
     constraints = list()
     constraints.append("block_size_x * tiling_x <= max_levels")
     # Memory allocation and initialization
