@@ -17,7 +17,7 @@ def generate_code(tuning_parameters):
         "<%INT_TYPE%> item = 0;\n" \
         "extern __shared__ <%REAL_TYPE%> sharedBuffer[];\n" \
         "<%REAL_TYPE%> * tvert_max = (<%REAL_TYPE%> *)(sharedBuffer);\n" \
-        "<%REAL_TYPE%> * tvert_min = (<%REAL_TYPE%> *)(&sharedBuffer[<%BYTES%> * maxLevels]);\n" \
+        "<%REAL_TYPE%> * tvert_min = (<%REAL_TYPE%> *)(&sharedBuffer[maxLevels]);\n" \
         "/* Compute tvert_max and tvert_min per level */\n" \
         "for ( <%INT_TYPE%> level = threadIdx.x; level < nLevels[blockIdx.x]; level += <%BLOCK_SIZE%> )\n" \
         "{\n" \
@@ -79,7 +79,6 @@ def generate_code(tuning_parameters):
         code = code.replace("<%BLOCK_SIZE%>", str(tuning_parameters["block_size_x"]))
     code = code.replace("<%REAL_TYPE%>", tuning_parameters["real_type"])
     code = code.replace("<%INT_TYPE%>", tuning_parameters["int_type"].replace("_", " "))
-    code = code.replace("<%BYTES%>", str(numpy.dtype(numpy_real_type).itemsize))
     if tuning_parameters["vector_size"] == 1:
         code = code.replace("<%VECTOR_SIZE%>", "")
     return code
