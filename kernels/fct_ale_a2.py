@@ -70,7 +70,6 @@ def generate_code(tuning_parameters):
         compute = compute.replace("<%MAX%>", str(numpy.finfo(numpy.float64).max))
     else:
         raise ValueError
-    compute = compute.replace("<%REAL_TYPE%>", tuning_parameters["real_type"])
     code = code.replace("<%COMPUTE_BLOCK%>", compute)
     code = code.replace("<%INT_TYPE%>", tuning_parameters["int_type"].replace("_", " "))
     code = code.replace("<%REAL_TYPE%>", tuning_parameters["real_type"])
