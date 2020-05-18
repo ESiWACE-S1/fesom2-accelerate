@@ -71,7 +71,7 @@ def generate_code(tuning_parameters):
             if tuning_parameters["vector_size"] == 1:
                 offset = tuning_parameters["block_size_x"] * tile
                 reduction = reduction + "if (level + {} < nLevels[blockIdx.x])\n{{\n{}}}\n".format(str(offset), reduction_block.replace("<%OFFSET%>", str(offset)))
-                update = update + "if (level + {} < nLevels[blockIdx.x])\n{{\n{}}}\n".format(str(offset), update_block.replace("<%OFFSET%>", str(offset)))
+                update = update + "if (level + {} < nLevels[blockIdx.x] - 2)\n{{\n{}}}\n".format(str(offset), update_block.replace("<%OFFSET%>", str(offset)))
     code = code.replace("<%REDUCTION%>", reduction)
     code = code.replace("<%UPDATE%>", update)
     if tuning_parameters["tiling_x"] > 1:
