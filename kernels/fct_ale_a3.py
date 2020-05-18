@@ -155,7 +155,7 @@ def tune(elements, nodes, max_elements, max_levels, vlimit, max_tile, real_type)
         levels[node] = numpy.random.randint(3, max_levels)
         number_elements_in_node[node] = numpy.random.randint(3, max_elements)
         for element in range(0, number_elements_in_node[node]):
-            elements_in_node[(node * max_elements) + element] = numpy.random.randint(0, max_elements)
+            elements_in_node[(node * max_elements) + element] = numpy.random.randint(0, elements)
     arguments = [numpy.int32(max_levels), numpy.int32(max_elements), levels, elements_in_node, number_elements_in_node, uv_rhs, fct_ttf_max, fct_ttf_min, fct_lo]
     # Reference
     reference(vlimit, nodes, levels, max_levels, elements_in_node, number_elements_in_node, max_elements, uv_rhs, fct_ttf_max_control, fct_ttf_min_control, fct_lo, numpy_real_type)
