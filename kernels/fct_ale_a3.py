@@ -53,6 +53,18 @@ def generate_code(tuning_parameters):
         "}\n" \
         "tvert_max[level + <%OFFSET%>] = tvert_max_temp;\n" \
         "tvert_min[level + <%OFFSET%>] = tvert_min_temp;\n"
+    reduction_block_vector = \
+        "item = (elements_in_node[(blockIdx.x * maxElements)] * maxLevels) + (level + <%OFFSET%>);\n" \
+        "tvert_max_temp = (UV_rhs[item]).x;\n" \
+        "tvert_min_temp = (UV_rhs[item]).y;\n" \
+        "for ( <%INT_TYPE%> element = 1; element < number_elements_in_node[blockIdx.x]; element++ )\n" \
+        "{\n" \
+        "item = (elements_in_node[(blockIdx.x * maxElements) + element] * maxLevels) + (level + <%OFFSET%>);\n" \
+        "tvert_max_temp = fmax(tvert_max_temp, (UV_rhs[item]).x);\n" \
+        "tvert_min_temp = fmin(tvert_min_temp, (UV_rhs[item]).y);\n" \
+        "}\n" \
+        "tvert_max[level + <%OFFSET%>] = tvert_max_temp;\n" \
+        "tvert_min[level + <%OFFSET%>] = tvert_min_temp;\n"
     update_block = \
         "temp = fmax(tvert_max[(level + <%OFFSET%>) - 1], tvert_max[level + <%OFFSET%>]);\n" \
         "temp = fmax(temp, tvert_max[(level + <%OFFSET%>) + 1]);\n" \
@@ -66,12 +78,16 @@ def generate_code(tuning_parameters):
         if tile == 0:
             if tuning_parameters["vector_size"] == 1:
                 reduction = reduction + reduction_block.replace(" + <%OFFSET%>", "")
-                update = update + update_block.replace(" + <%OFFSET%>", "")
+            else:
+                reduction = reduction + reduction_block_vector.replace(" + <%OFFSET%>", "")
+            update = update + update_block.replace(" + <%OFFSET%>", "")
         else:
+            offset = tuning_parameters["block_size_x"] * tile
             if tuning_parameters["vector_size"] == 1:
-                offset = tuning_parameters["block_size_x"] * tile
                 reduction = reduction + "if (level + {} < nLevels[blockIdx.x])\n{{\n{}}}\n".format(str(offset), reduction_block.replace("<%OFFSET%>", str(offset)))
-                update = update + "if (level + {} < nLevels[blockIdx.x] - 2)\n{{\n{}}}\n".format(str(offset), update_block.replace("<%OFFSET%>", str(offset)))
+            else:
+                reduction = reduction + "if (level + {} < nLevels[blockIdx.x])\n{{\n{}}}\n".format(str(offset), reduction_block_vector.replace("<%OFFSET%>", str(offset)))
+            update = update + "if (level + {} < nLevels[blockIdx.x] - 2)\n{{\n{}}}\n".format(str(offset), update_block.replace("<%OFFSET%>", str(offset)))
     code = code.replace("<%REDUCTION%>", reduction)
     code = code.replace("<%UPDATE%>", update)
     if tuning_parameters["tiling_x"] > 1:
@@ -82,6 +98,8 @@ def generate_code(tuning_parameters):
     code = code.replace("<%INT_TYPE%>", tuning_parameters["int_type"].replace("_", " "))
     if tuning_parameters["vector_size"] == 1:
         code = code.replace("<%VECTOR_SIZE%>", "")
+    else:
+        code = code.replace("<%VECTOR_SIZE%>", str(tuning_parameters["vector_size"]))
     return code
 
 def reference(vlimit, nodes, levels, max_levels, elements_in_node, number_elements_in_node, max_elements_in_node, uv_rhs, fct_ttf_max, fct_ttf_min, fct_lo, real_type):
@@ -134,7 +152,7 @@ def tune(elements, nodes, max_elements, max_levels, vlimit, max_tile, real_type)
     tuning_parameters["max_levels"] = [str(max_levels)]
     tuning_parameters["block_size_x"] = [32 * i for i in range(1, 33)]
     tuning_parameters["tiling_x"] = [i for i in range(1, max_tile)]
-    tuning_parameters["vector_size"] = [1]
+    tuning_parameters["vector_size"] = [1, 2]
     shared_memory_args = dict()
     shared_memory_args["size"] = 2 * max_levels * numpy.dtype(numpy_real_type).itemsize
     constraints = list()
