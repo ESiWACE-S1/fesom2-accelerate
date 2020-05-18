@@ -98,9 +98,6 @@ def reference(elements, levels, max_levels, nodes, UV_rhs, fct_ttf_max, fct_ttf_
                 else:
                     raise ValueError
 
-def verify(control_data, data, atol=None):
-    return numpy.allclose(control_data, data, atol)
-
 def tune(elements, nodes, max_levels, max_tile, real_type):
     numpy_real_type = None
     # Tuning and code generation parameters
@@ -136,7 +133,7 @@ def tune(elements, nodes, max_levels, max_tile, real_type):
     reference(elements, levels, max_levels, element_nodes, uv_rhs_control, fct_ttf_max, fct_ttf_min, real_type)
     arguments_control = [None, None, None, uv_rhs_control, None, None]
     # Tuning
-    results, environment = tune_kernel("fct_ale_a2", generate_code, "{} * block_size_x".format(elements), arguments, tuning_parameters, lang="CUDA", answer=arguments_control, verify=verify, restrictions=constraints, quiet=True)
+    results, environment = tune_kernel("fct_ale_a2", generate_code, "{} * block_size_x".format(elements), arguments, tuning_parameters, lang="CUDA", answer=arguments_control, restrictions=constraints, quiet=True)
     return results
 
 def parse_command_line():
