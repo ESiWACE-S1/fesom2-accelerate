@@ -169,3 +169,78 @@ void fct_ale_pre_comm_acc_( int* alg_state, void* fct_ttf_max, void*  fct_ttf_mi
     }
     *alg_state = 2;
 }
+
+void fct_ale_pre_comm_acc2_( int* alg_state, void* fct_ttf_max, void*  fct_ttf_min, 
+    void*  fct_plus, void*  fct_minus, void* tvert_max, 
+    void*  tvert_min, void* ttf, real_type* ttf_vals, void* fct_LO, void*  fct_adf_v,
+    void* fct_adf_h, void* UV_rhs, void* area_inv, int* myDim_nod2D, 
+    int* eDim_nod2D, int* myDim_elem2D, int* myDim_edge2D, int* nl, void* nlevels_nod2D, 
+    void* nlevels_elem2D, void* elem2D_nodes, void* nod_in_elem2D_num, void* nod_in_elem2D, 
+    int* nod_in_elem2D_dim, void* nod2D_edges, void* elem2D_edges, int* vlimit, 
+    real_type* flux_eps, real_type* bignumber, real_type* dt)
+{
+    *alg_state = 0;
+    bool status = true;
+    int nNodes = (*myDim_nod2D) + (*eDim_nod2D);
+
+    status = transferToDevice(*static_cast<gpuMemory*>(fct_LO)) and 
+             transferToDevice(*static_cast<gpuMemory*>(fct_adf_v));
+    if ( !status )
+    {
+        return;
+    }
+
+    struct gpuMemory* ttf_gpu = static_cast<gpuMemory*>(ttf);
+    ttf_gpu->host_pointer = (void*)ttf_vals;
+    status = transferToDevice(*ttf_gpu);
+    if ( !status )
+    {
+        return;
+    }
+
+    int maxLevels = *nl - 1;
+    int maxnElems = *nod_in_elem2D_dim;
+    int* nlevels_nod2D_dev = reinterpret_cast<int*>(static_cast<gpuMemory*>(nlevels_nod2D)->device_pointer);
+    int* nlevels_elem2D_dev = reinterpret_cast<int*>(static_cast<gpuMemory*>(nlevels_elem2D)->device_pointer);
+    int* node_elems_dev = reinterpret_cast<int*>(static_cast<gpuMemory*>(nod_in_elem2D)->device_pointer);
+    int* node_num_elems_dev = reinterpret_cast<int*>(static_cast<gpuMemory>(nod_in_elem2D_num)->device_pointer);
+    int* elem2D_nodes_dev = reinterpret_cast<int*>(static_cast<gpuMemory*>(elem2D_nodes)->device_pointer);
+    real_type* fct_lo_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(fct_LO)->device_pointer);
+    real_type* ttf_dev    = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(ttf)->device_pointer);
+    real_type* fct_adf_h_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(fct_adf_h)->device_pointer);
+    real_type* UV_rhs_dev    = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(UV_rhs)->device_pointer);
+    real_type* fct_ttf_max_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(fct_ttf_max)->device_pointer);
+    real_type* fct_ttf_min_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(fct_ttf_min)->device_pointer);
+    real_type* tvert_max_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(tvert_max)->device_pointer);
+    real_type* tvert_min_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(tvert_min)->device_pointer);
+    real_type* fct_plus_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(fct_plus)->device_pointer);
+    real_type* fct_min_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(fct_minus)->device_pointer);
+
+    fct_ale_pre_comm<<< dim3(nNodes), dim3(32) >>>( maxLevels,
+                                                    maxnElems,
+                                                    nlevels_nod2D_dev,
+                                                    nlevels_elem2D_dev,
+                                                    node_elems_dev,
+                                                    node_num_elems_dev,
+                                                    elem2D_nodes_dev,
+                                                    fct_lo_dev, 
+                                                    ttf_dev,
+                                                    fct_adf_v_dev,
+                                                    nullptr, //Not used yet
+                                                    UV_rhs_dev,
+                                                    fct_ttf_max_dev, 
+                                                    fct_ttf_min_dev,
+                                                    tvert_max_dev,
+                                                    tvert_min_dev,
+                                                    fct_plus_dev,
+                                                    fct_min_dev)
+    status =    transferToHost(*static_cast<gpuMemory*>(UV_rhs)) and 
+                transferToHost(*static_cast<gpuMemory*>(fct_plus)) and 
+                transferToHost(*static_cast<gpuMemory*>(fct_minus));
+    if ( !status )
+    {
+        *alg_state = 0;
+        return;
+    }
+    *alg_state = 4;
+}
