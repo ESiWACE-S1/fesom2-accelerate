@@ -16,7 +16,8 @@ __global__ void fct_ale_pre_comm(   const int max_levels,
                                     double * __restrict__ tvert_max,
                                     double * __restrict__ tvert_min,
                                     double * __restrict__ fct_plus,
-                                    double * __restrict__ fct_minus)
+                                    double * __restrict__ fct_minus,
+				    const double bignr)
 {
     const int node = (blockIdx.x * max_levels);
     const int numelems = node_num_elems[blockIdx.x];
@@ -27,7 +28,7 @@ __global__ void fct_ale_pre_comm(   const int max_levels,
         double tvmin = bignr;
         for ( int elem = 0; elem < numelems ; elem++ )
         {
-            elem_index = node_elems[blockIdx.x * max_num_elems + elem] - 1;
+            int elem_index = node_elems[blockIdx.x * max_num_elems + elem] - 1;
             int node_indices[3] = { (elem_nodes[3 * elem_index] - 1) * max_levels + level,
                                     (elem_nodes[3 * elem_index + 1] - 1) * max_levels + level,
                                     (elem_nodes[3 * elem_index + 2] - 1) * max_levels + level};
