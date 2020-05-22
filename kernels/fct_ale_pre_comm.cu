@@ -1,5 +1,6 @@
 /* Block size X: 32 */
 __global__ void fct_ale_pre_comm(   const int max_levels,
+                                    const int num_nodes,
                                     const int max_num_elems,
                                     const int * __restrict__ node_levels,
                                     const int * __restrict__ elem_levels,
