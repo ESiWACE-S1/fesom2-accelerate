@@ -118,9 +118,9 @@ void fct_ale_a1_reference_( int * nNodes, int * nLevels_nod2D, int * maxLevels_p
                             real_type * fct_ttf_min,  real_type * fct_low_order, real_type * ttf);
 
 #ifdef __CUDACC__
-void transfer_mesh_(void** ret, int* host_ptr, int* size);
-void alloc_var_(void** ret, real_type* host_ptr, int* size);
-void reserve_var_(void** ret, int* size);
+void transfer_mesh_(void** ret, int* host_ptr, int* size, int* istat);
+void alloc_var_(void** ret, real_type* host_ptr, int* size, int* istat);
+void reserve_var_(void** ret, int* size, int* istat);
 void fct_ale_pre_comm_acc_( int* alg_state, void** fct_ttf_max, void**  fct_ttf_min, 
                             real_type*  fct_plus, real_type*  fct_minus, real_type* tvert_max, 
                             real_type*  tvert_min, void** ttf, real_type* ttf_vals, void** fct_LO, real_type*  fct_adf_v,
@@ -128,15 +128,15 @@ void fct_ale_pre_comm_acc_( int* alg_state, void** fct_ttf_max, void**  fct_ttf_
                             int* eDim_nod2D, int* myDim_elem2D, int* myDim_edge2D, int* nl, void** nlevels_nod2D, 
                             void** nlevels_elem2D, void** elem2D_nodes, int* nod_in_elem2D_num, int* nod_in_elem2D, 
                             int* nod_in_elem2D_dim, int* nod2D_edges, int* elem2D_edges, int* vlimit, 
-                            real_type* flux_eps, real_type* bignumber, real_type* dt);
+    			    real_type* flux_eps, real_type* bignumber, real_type* dt);
 
-void fct_ale_pre_comm_acc2_( int* alg_state, void* fct_ttf_max, void*  fct_ttf_min, 
-    void*  fct_plus, void*  fct_minus, void* tvert_max, 
-    void*  tvert_min, void* ttf, real_type* ttf_vals, void* fct_LO, void*  fct_adf_v,
-    void* fct_adf_h, void* UV_rhs, void* area_inv, int* myDim_nod2D, 
-    int* eDim_nod2D, int* myDim_elem2D, int* myDim_edge2D, int* nl, void* nlevels_nod2D, 
-    void* nlevels_elem2D, void* elem2D_nodes, void* nod_in_elem2D_num, void* nod_in_elem2D, 
-    int* nod_in_elem2D_dim, void* nod2D_edges, void* elem2D_edges, int* vlimit, 
+void fct_ale_pre_comm_acc2_( int* alg_state, void** fct_ttf_max, void**  fct_ttf_min, 
+    void**  fct_plus, void**  fct_minus, void** tvert_max, 
+    void**  tvert_min, void** ttf, real_type* ttf_vals, void** fct_LO, void**  fct_adf_v,
+    void** fct_adf_h, void** UV_rhs, real_type* area_inv, int* myDim_nod2D, 
+    int* eDim_nod2D, int* myDim_elem2D, int* myDim_edge2D, int* nl, void** nlevels_nod2D, 
+    void** nlevels_elem2D, void** elem2D_nodes, void** nod_in_elem2D_num, void** nod_in_elem2D, 
+    int* nod_in_elem2D_dim, int* nod2D_edges, int* elem2D_edges, int* vlimit, 
     real_type* flux_eps, real_type* bignumber, real_type* dt);
 /**
  GPU CUDA implementation of step a1 of FCT_ALE.
