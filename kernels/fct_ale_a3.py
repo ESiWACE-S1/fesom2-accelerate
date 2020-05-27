@@ -48,8 +48,8 @@ def generate_code(tuning_parameters):
         "for ( <%INT_TYPE%> element = 1; element < number_elements_in_node[blockIdx.x]; element++ )\n" \
         "{\n" \
         "item = (elements_in_node[(blockIdx.x * maxElements) + element] * maxLevels * 2) + ((level + <%OFFSET%>) * 2);\n" \
-        "tvert_max_temp = fmax(tvert_max_temp, UV_rhs[item]);\n" \
-        "tvert_min_temp = fmin(tvert_min_temp, UV_rhs[item + 1]);\n" \
+        "tvert_max_temp = <%FMAX%>(tvert_max_temp, UV_rhs[item]);\n" \
+        "tvert_min_temp = <%FMIN%>(tvert_min_temp, UV_rhs[item + 1]);\n" \
         "}\n" \
         "tvert_max[level + <%OFFSET%>] = tvert_max_temp;\n" \
         "tvert_min[level + <%OFFSET%>] = tvert_min_temp;\n"
@@ -60,17 +60,17 @@ def generate_code(tuning_parameters):
         "for ( <%INT_TYPE%> element = 1; element < number_elements_in_node[blockIdx.x]; element++ )\n" \
         "{\n" \
         "item = (elements_in_node[(blockIdx.x * maxElements) + element] * maxLevels) + (level + <%OFFSET%>);\n" \
-        "tvert_max_temp = fmax(tvert_max_temp, (UV_rhs[item]).x);\n" \
-        "tvert_min_temp = fmin(tvert_min_temp, (UV_rhs[item]).y);\n" \
+        "tvert_max_temp = <%FMAX%>(tvert_max_temp, (UV_rhs[item]).x);\n" \
+        "tvert_min_temp = <%FMIN%>(tvert_min_temp, (UV_rhs[item]).y);\n" \
         "}\n" \
         "tvert_max[level + <%OFFSET%>] = tvert_max_temp;\n" \
         "tvert_min[level + <%OFFSET%>] = tvert_min_temp;\n"
     update_block = \
-        "temp = fmax(tvert_max[(level + <%OFFSET%>) - 1], tvert_max[level + <%OFFSET%>]);\n" \
-        "temp = fmax(temp, tvert_max[(level + <%OFFSET%>) + 1]);\n" \
+        "temp = <%FMAX%>(tvert_max[(level + <%OFFSET%>) - 1], tvert_max[level + <%OFFSET%>]);\n" \
+        "temp = <%FMAX%>(temp, tvert_max[(level + <%OFFSET%>) + 1]);\n" \
         "fct_ttf_max[item + level + <%OFFSET%>] = temp - fct_lo[item + level + <%OFFSET%>];\n" \
-        "temp = fmin(tvert_min[(level + <%OFFSET%>) - 1], tvert_min[level + <%OFFSET%>]);\n" \
-        "temp = fmin(temp, tvert_min[(level + <%OFFSET%>) + 1]);\n" \
+        "temp = <%FMIN%>(tvert_min[(level + <%OFFSET%>) - 1], tvert_min[level + <%OFFSET%>]);\n" \
+        "temp = <%FMIN%>(temp, tvert_min[(level + <%OFFSET%>) + 1]);\n" \
         "fct_ttf_min[item + level + <%OFFSET%>] = temp - fct_lo[item + level + <%OFFSET%>];\n"
     reduction = str()
     update = str()
@@ -94,6 +94,14 @@ def generate_code(tuning_parameters):
         code = code.replace("<%BLOCK_SIZE%>", str(tuning_parameters["block_size_x"] * tuning_parameters["tiling_x"]))
     else:
         code = code.replace("<%BLOCK_SIZE%>", str(tuning_parameters["block_size_x"]))
+    if tuning_parameters["real_type"] == "float":
+        code = code.replace("<%FMAX%>", "fmaxf")
+        code = code.replace("<%FMIN%>", "fminf")
+    elif tuning_parameters["real_type"] == "double":
+        code = code.replace("<%FMAX%>", "fmax")
+        code = code.replace("<%FMIN%>", "fmin")
+    else:
+        raise ValueError
     code = code.replace("<%REAL_TYPE%>", tuning_parameters["real_type"])
     code = code.replace("<%INT_TYPE%>", tuning_parameters["int_type"].replace("_", " "))
     if tuning_parameters["vector_size"] == 1:

@@ -19,10 +19,8 @@ def generate_code(tuning_parameters):
     compute_block = \
         "fct_low_order_item = fct_low_order[node + level + <%OFFSET%>];\n" \
         "ttf_item = ttf[node + level + <%OFFSET%>];\n" \
-        "fct_ttf_max[node + level + <%OFFSET%>] = fmax(fct_low_order_item, ttf_item);\n" \
-        "fct_ttf_min[node + level + <%OFFSET%>] = fmin(fct_low_order_item, ttf_item);\n"
-    code = code.replace("<%INT_TYPE%>", tuning_parameters["int_type"].replace("_", " "))
-    code = code.replace("<%REAL_TYPE%>", tuning_parameters["real_type"])
+        "fct_ttf_max[node + level + <%OFFSET%>] = <%FMAX%>(fct_low_order_item, ttf_item);\n" \
+        "fct_ttf_min[node + level + <%OFFSET%>] = <%FMIN%>(fct_low_order_item, ttf_item);\n"
     if tuning_parameters["tiling_x"] > 1:
         code = code.replace("<%BLOCK_SIZE%>", str(tuning_parameters["block_size_x"] * tuning_parameters["tiling_x"]))
     else:
@@ -35,6 +33,16 @@ def generate_code(tuning_parameters):
             offset = tuning_parameters["block_size_x"] * tile
             compute = compute + "if (level + {} < nLevels[blockIdx.x])\n{{\n{}}}\n".format(str(offset), compute_block.replace("<%OFFSET%>", str(offset)))
     code = code.replace("<%COMPUTE_BLOCK%>", compute)
+    if tuning_parameters["real_type"] == "float":
+        code = code.replace("<%FMAX%>", "fmaxf")
+        code = code.replace("<%FMIN%>", "fminf")
+    elif tuning_parameters["real_type"] == "double":
+        code = code.replace("<%FMAX%>", "fmax")
+        code = code.replace("<%FMIN%>", "fmin")
+    else:
+        raise ValueError
+    code = code.replace("<%INT_TYPE%>", tuning_parameters["int_type"].replace("_", " "))
+    code = code.replace("<%REAL_TYPE%>", tuning_parameters["real_type"])
     return code
 
 def reference(nodes, levels, max_levels, fct_low_order, ttf, fct_ttf_max, fct_ttf_min):

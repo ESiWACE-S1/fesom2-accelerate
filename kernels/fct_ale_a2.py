@@ -20,11 +20,11 @@ def generate_code(tuning_parameters):
         "if ( level + <%OFFSET%> < nLevels[blockIdx.x] )\n" \
         "{\n" \
         "<%REAL_TYPE%> temp = 0.0;\n" \
-        "temp = fmax(fct_ttf_max[element_node0_index + level + <%OFFSET%>], fct_ttf_max[element_node1_index + level + <%OFFSET%>]);\n" \
-        "temp = fmax(temp, fct_ttf_max[element_node2_index + level + <%OFFSET%>]);\n" \
+        "temp = <%FMAX%>(fct_ttf_max[element_node0_index + level + <%OFFSET%>], fct_ttf_max[element_node1_index + level + <%OFFSET%>]);\n" \
+        "temp = <%FMAX%>(temp, fct_ttf_max[element_node2_index + level + <%OFFSET%>]);\n" \
         "UV_rhs[element_index + ((level + <%OFFSET%>) * 2)] = temp;\n" \
-        "temp = fmin(fct_ttf_min[element_node0_index + level + <%OFFSET%>], fct_ttf_min[element_node1_index + level + <%OFFSET%>]);\n" \
-        "temp = fmin(temp, fct_ttf_min[element_node2_index + level + <%OFFSET%>]);\n" \
+        "temp = <%FMIN%>(fct_ttf_min[element_node0_index + level + <%OFFSET%>], fct_ttf_min[element_node1_index + level + <%OFFSET%>]);\n" \
+        "temp = <%FMIN%>(temp, fct_ttf_min[element_node2_index + level + <%OFFSET%>]);\n" \
         "UV_rhs[element_index + ((level + <%OFFSET%>) * 2) + 1] = temp;\n" \
         "}\n" \
         "else if ( level + <%OFFSET%> < maxLevels - 1 )\n" \
@@ -36,10 +36,10 @@ def generate_code(tuning_parameters):
         "if ( level + <%OFFSET%> < nLevels[blockIdx.x] )\n" \
         "{\n" \
         "<%REAL_TYPE%><%VECTOR_SIZE%> temp = make_<%REAL_TYPE%>2(0.0, 0.0);\n" \
-        "temp.x = fmax(fct_ttf_max[element_node0_index + level + <%OFFSET%>], fct_ttf_max[element_node1_index + level + <%OFFSET%>]);\n" \
-        "temp.x = fmax(temp.x, fct_ttf_max[element_node2_index + level + <%OFFSET%>]);\n" \
-        "temp.y = fmin(fct_ttf_min[element_node0_index + level + <%OFFSET%>], fct_ttf_min[element_node1_index + level + <%OFFSET%>]);\n" \
-        "temp.y = fmin(temp.y, fct_ttf_min[element_node2_index + level + <%OFFSET%>]);\n" \
+        "temp.x = <%FMAX%>(fct_ttf_max[element_node0_index + level + <%OFFSET%>], fct_ttf_max[element_node1_index + level + <%OFFSET%>]);\n" \
+        "temp.x = <%FMAX%>(temp.x, fct_ttf_max[element_node2_index + level + <%OFFSET%>]);\n" \
+        "temp.y = <%FMIN%>(fct_ttf_min[element_node0_index + level + <%OFFSET%>], fct_ttf_min[element_node1_index + level + <%OFFSET%>]);\n" \
+        "temp.y = <%FMIN%>(temp.y, fct_ttf_min[element_node2_index + level + <%OFFSET%>]);\n" \
         "UV_rhs[element_index + level + <%OFFSET%>] = temp;\n" \
         "}\n" \
         "else if ( level + <%OFFSET%> < maxLevels - 1 )\n" \
@@ -71,6 +71,14 @@ def generate_code(tuning_parameters):
     else:
         raise ValueError
     code = code.replace("<%COMPUTE_BLOCK%>", compute)
+    if tuning_parameters["real_type"] == "float":
+        code = code.replace("<%FMAX%>", "fmaxf")
+        code = code.replace("<%FMIN%>", "fminf")
+    elif tuning_parameters["real_type"] == "double":
+        code = code.replace("<%FMAX%>", "fmax")
+        code = code.replace("<%FMIN%>", "fmin")
+    else:
+        raise ValueError
     code = code.replace("<%INT_TYPE%>", tuning_parameters["int_type"].replace("_", " "))
     code = code.replace("<%REAL_TYPE%>", tuning_parameters["real_type"])
     if tuning_parameters["vector_size"] == 1:
