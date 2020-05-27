@@ -19,8 +19,8 @@ def generate_code(tuning_parameters):
     compute_block = \
         "fct_adf_v_level = fct_adf_v[node + level + <%OFFSET%>];\n" \
         "fct_adf_v_nlevel = fct_adf_v[node + (level + 1) + <%OFFSET%>];\n" \
-        "fct_plus[node + level + <%OFFSET%>] = 0.0 + (fmax(0.0, fct_adf_v_level) + fmax(0.0, -fct_adf_v_nlevel));\n" \
-        "fct_minus[node + level + <%OFFSET%>] = 0.0 + (fmin(0.0, fct_adf_v_level) + fmin(0.0, -fct_adf_v_nlevel));\n"
+        "fct_plus[node + level + <%OFFSET%>] = fmax(0.0, fct_adf_v_level) + fmax(0.0, -fct_adf_v_nlevel);\n" \
+        "fct_minus[node + level + <%OFFSET%>] = fmin(0.0, fct_adf_v_level) + fmin(0.0, -fct_adf_v_nlevel);\n"
     if tuning_parameters["tiling_x"] > 1:
         code = code.replace("<%BLOCK_SIZE%>", str(tuning_parameters["block_size_x"] * tuning_parameters["tiling_x"]))
     else:
