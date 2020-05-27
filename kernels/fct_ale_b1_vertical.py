@@ -85,7 +85,7 @@ def tune(nodes, max_levels, max_tile, real_type):
         levels[node] = numpy.random.randint(3, max_levels)
     arguments = [numpy.int32(max_levels), levels, fct_adf_v, fct_plus, fct_minus]
     # Reference
-    reference(nodes, levels, max_levels, fct_adf_v, fct_plus, fct_minus)
+    reference(nodes, levels, max_levels, fct_adf_v, fct_plus_control, fct_minus_control)
     arguments_control = [None, None, None, fct_plus_control, fct_minus_control]
     # Tuning
     results, environment = tune_kernel("fct_ale_b1_vertical", generate_code, "{} * block_size_x".format(nodes), arguments, tuning_parameters, lang="CUDA", answer=arguments_control, restrictions=constraints, quiet=True)
