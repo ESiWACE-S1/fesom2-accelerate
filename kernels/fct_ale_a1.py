@@ -46,6 +46,12 @@ def reference(nodes, levels, max_levels, fct_low_order, ttf, fct_ttf_max, fct_tt
 
 def tune(nodes, max_levels, max_tile, real_type):
     numpy_real_type = None
+    if real_type == "float":
+        numpy_real_type = numpy.float32
+    elif real_type == "double":
+        numpy_real_type = numpy.float64
+    else:
+        raise ValueError
     # Tuning and code generation parameters
     tuning_parameters = dict()
     tuning_parameters["int_type"] = ["unsigned_int", "int"]
@@ -56,18 +62,12 @@ def tune(nodes, max_levels, max_tile, real_type):
     constraints = list()
     constraints.append("block_size_x * tiling_x <= max_levels")
     # Memory allocation and initialization
-    if real_type == "float":
-        numpy_real_type = numpy.float32
-    elif real_type == "double":
-        numpy_real_type = numpy.float64
-    else:
-        raise ValueError
     fct_low_order = numpy.random.randn(nodes * max_levels).astype(numpy_real_type)
     ttf = numpy.random.randn(nodes * max_levels).astype(numpy_real_type)
-    fct_ttf_max = numpy.zeros(nodes * max_levels)
-    fct_ttf_min = numpy.zeros_like(fct_ttf_max)
-    fct_ttf_max_control = numpy.zeros_like(fct_ttf_max)
-    fct_ttf_min_control = numpy.zeros_like(fct_ttf_min)
+    fct_ttf_max = numpy.zeros(nodes * max_levels).astype(numpy_real_type)
+    fct_ttf_min = numpy.zeros_like(fct_ttf_max).astype(numpy_real_type)
+    fct_ttf_max_control = numpy.zeros_like(fct_ttf_max).astype(numpy_real_type)
+    fct_ttf_min_control = numpy.zeros_like(fct_ttf_min).astype(numpy_real_type)
     levels = numpy.zeros(nodes).astype(numpy.int32)
     for node in range(0, nodes):
         levels[node] = numpy.random.randint(3, max_levels)
