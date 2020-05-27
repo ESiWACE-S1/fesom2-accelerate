@@ -100,6 +100,12 @@ def reference(elements, levels, max_levels, nodes, UV_rhs, fct_ttf_max, fct_ttf_
 
 def tune(elements, nodes, max_levels, max_tile, real_type):
     numpy_real_type = None
+    if real_type == "float":
+        numpy_real_type = numpy.float32
+    elif real_type == "double":
+        numpy_real_type = numpy.float64
+    else:
+        raise ValueError
     # Tuning and code generation parameters
     tuning_parameters = dict()
     tuning_parameters["int_type"] = ["unsigned_int", "int"]
@@ -111,12 +117,6 @@ def tune(elements, nodes, max_levels, max_tile, real_type):
     constraints = list()
     constraints.append("block_size_x * tiling_x <= max_levels")
     # Memory allocation and initialization
-    if real_type == "float":
-        numpy_real_type = numpy.float32
-    elif real_type == "double":
-        numpy_real_type = numpy.float64
-    else:
-        raise ValueError
     uv_rhs = numpy.zeros(elements * max_levels * 2).astype(numpy_real_type)
     uv_rhs_control = numpy.zeros_like(uv_rhs).astype(numpy_real_type)
     fct_ttf_max = numpy.random.randn(nodes * max_levels).astype(numpy_real_type)
