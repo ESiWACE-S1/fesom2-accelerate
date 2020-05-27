@@ -41,8 +41,13 @@ def reference(nodes, levels, max_levels, fct_adf_v, fct_plus, fct_minus):
     for node in range(0, nodes):
         for level in range(0, levels[node] - 1):
             item = (node * max_levels) + level
-            fct_plus[item] = 0.0 + (max(0.0, fct_adf_v[item]) + max(0.0, -fct_adf_v[(node * max_levels) + level + 1]))
-            fct_minus[item] = 0.0 + (min(0.0, fct_adf_v[item]) + min(0.0, -fct_adf_v[(node * max_levels) + level + 1]))
+            fct_plus[item] = 0.0
+            fct_minus[item] = 0.0
+    for node in range(0, nodes):
+        for level in range(0, levels[node] - 1):
+            item = (node * max_levels) + level
+            fct_plus[item] = (max(0.0, fct_adf_v[item]) + max(0.0, -fct_adf_v[(node * max_levels) + level + 1]))
+            fct_minus[item] = (min(0.0, fct_adf_v[item]) + min(0.0, -fct_adf_v[(node * max_levels) + level + 1]))
 
 def tune(nodes, max_levels, max_tile, real_type):
     numpy_real_type = None
