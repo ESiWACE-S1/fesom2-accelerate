@@ -33,6 +33,7 @@ def generate_code(tuning_parameters):
         "<%REAL_TYPE%> temp = 0.0;\n" \
         "<%UPDATE%>" \
         "}\n" \
+        "/* Special case for top and bottom levels */\n" \
         "if ( threadIdx.x == 0 )\n" \
         "{\n" \
         "fct_ttf_max[item] = tvert_max[0] - fct_lo[item];\n" \
