@@ -52,9 +52,9 @@ def generate_code_shared(tuning_parameters):
         "const <%INT_TYPE%> node = (blockIdx.x * maxLevels);\n" \
         "extern __shared__ <%REAL_TYPE%> fct_adf_v_local[];\n" \
         "\n" \
-        "for ( <%INT_TYPE%> level = threadIdx.x; level < nLevels[blockIdx.x]; level++ )\n" \
+        "for ( <%INT_TYPE%> level = threadIdx.x; level < nLevels[blockIdx.x]; level  += <%BLOCK_SIZE%> )\n" \
         "{\n" \
-        "fct_adf_v_local[level] = fct_adf_v[node + level];\n" \
+        "<%LOAD_BLOCK%>" \
         "}\n" \
         "__syncthreads();\n" \
         "for ( <%INT_TYPE%> level = threadIdx.x; level < nLevels[blockIdx.x] - 1; level += <%BLOCK_SIZE%> )\n" \
@@ -62,6 +62,8 @@ def generate_code_shared(tuning_parameters):
         "<%COMPUTE_BLOCK%>" \
         "}\n" \
         "}\n"
+    load_block = \
+        "fct_adf_v_local[level + <%OFFSET%>] = fct_adf_v[node + level + <%OFFSET%>];\n"
     compute_block = \
         "fct_plus[node + level + <%OFFSET%>] = <%FMAX%>(0.0, fct_adf_v_local[level + <%OFFSET%>]) + <%FMAX%>(0.0, -fct_adf_v_local[level + <%OFFSET%> + 1]);\n" \
         "fct_minus[node + level + <%OFFSET%>] = <%FMIN%>(0.0, fct_adf_v_local[level + <%OFFSET%>]) + <%FMIN%>(0.0, -fct_adf_v_local[level + <%OFFSET%> + 1]);\n"
@@ -70,12 +72,16 @@ def generate_code_shared(tuning_parameters):
     else:
         code = code.replace("<%BLOCK_SIZE%>", str(tuning_parameters["block_size_x"]))
     compute = str()
+    load = str()
     for tile in range(0, tuning_parameters["tiling_x"]):
         if tile == 0:
+            load = load + load_block.replace(" + <%OFFSET%>", "")
             compute = compute + compute_block.replace(" + <%OFFSET%>", "")
         else:
             offset = tuning_parameters["block_size_x"] * tile
+            load = load + "if (level + {} < nLevels[blockIdx.x])\n{{\n{}}}\n".format(str(offset), load_block.replace("<%OFFSET%>", str(offset)))
             compute = compute + "if (level + {} < nLevels[blockIdx.x] - 1)\n{{\n{}}}\n".format(str(offset), compute_block.replace("<%OFFSET%>", str(offset)))
+    code = code.replace("<%LOAD_BLOCK%>", load)
     code = code.replace("<%COMPUTE_BLOCK%>", compute)
     if tuning_parameters["real_type"] == "float":
         code = code.replace("<%FMAX%>", "fmaxf")
