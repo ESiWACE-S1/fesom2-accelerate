@@ -117,6 +117,7 @@ extern "C"
 void fct_ale_a1_reference_( int * nNodes, int * nLevels_nod2D, int * maxLevels_ptr, real_type * fct_ttf_max, 
                             real_type * fct_ttf_min,  real_type * fct_low_order, real_type * ttf);
 
+
 #ifdef __CUDACC__
 void transfer_mesh_(void** ret, int* host_ptr, int* size, int* istat);
 void alloc_var_(void** ret, real_type* host_ptr, int* size, int* istat);

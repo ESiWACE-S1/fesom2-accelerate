@@ -5,9 +5,9 @@ import argparse
 
 def generate_code(tuning_parameters):
     code = \
-        "__global__ void fct_ale_a2(const int maxLevels, const int * __restrict__ nLevels, const int * __restrict__ elementNodes, <%REAL_TYPE%>2 * __restrict__ UV_rhs, const <%REAL_TYPE%> * __restrict__ fct_ttf_max, const <%REAL_TYPE%> * __restrict__ fct_ttf_min)\n" \
+        "__global__ void fct_ale_a2(const int maxLevels, const int * __restrict__ nLevels, const int * __restrict__ elementNodes, <%REAL_TYPE%><%VECTOR_SIZE%> * __restrict__ UV_rhs, const <%REAL_TYPE%> * __restrict__ fct_ttf_max, const <%REAL_TYPE%> * __restrict__ fct_ttf_min)\n" \
         "{\n" \
-        "const <%INT_TYPE%> element_index = (blockIdx.x * maxLevels);\n" \
+        "const <%INT_TYPE%> element_index = (blockIdx.x * maxLevels * 2);\n" \
         "const <%INT_TYPE%> element_node0_index = elementNodes[(blockIdx.x * 3)] * maxLevels;\n" \
         "const <%INT_TYPE%> element_node1_index = elementNodes[(blockIdx.x * 3) + 1] * maxLevels;\n" \
         "const <%INT_TYPE%> element_node2_index = elementNodes[(blockIdx.x * 3) + 2] * maxLevels;\n" \
@@ -19,11 +19,27 @@ def generate_code(tuning_parameters):
     compute_block = \
         "if ( level + <%OFFSET%> < nLevels[blockIdx.x] )\n" \
         "{\n" \
-        "<%REAL_TYPE%>2 temp = make_<%REAL_TYPE%>2(0.0, 0.0);\n" \
-        "temp.x = fmax(fct_ttf_max[element_node0_index + level + <%OFFSET%>], fct_ttf_max[element_node1_index + level + <%OFFSET%>]);\n" \
-        "temp.x = fmax(temp.x, fct_ttf_max[element_node2_index + level + <%OFFSET%>]);\n" \
-        "temp.y = fmin(fct_ttf_min[element_node0_index + level + <%OFFSET%>], fct_ttf_min[element_node1_index + level + <%OFFSET%>]);\n" \
-        "temp.y = fmin(temp.y, fct_ttf_min[element_node2_index + level + <%OFFSET%>]);\n" \
+        "<%REAL_TYPE%> temp = 0.0;\n" \
+        "temp = <%FMAX%>(fct_ttf_max[element_node0_index + level + <%OFFSET%>], fct_ttf_max[element_node1_index + level + <%OFFSET%>]);\n" \
+        "temp = <%FMAX%>(temp, fct_ttf_max[element_node2_index + level + <%OFFSET%>]);\n" \
+        "UV_rhs[element_index + ((level + <%OFFSET%>) * 2)] = temp;\n" \
+        "temp = <%FMIN%>(fct_ttf_min[element_node0_index + level + <%OFFSET%>], fct_ttf_min[element_node1_index + level + <%OFFSET%>]);\n" \
+        "temp = <%FMIN%>(temp, fct_ttf_min[element_node2_index + level + <%OFFSET%>]);\n" \
+        "UV_rhs[element_index + ((level + <%OFFSET%>) * 2) + 1] = temp;\n" \
+        "}\n" \
+        "else if ( level + <%OFFSET%> < maxLevels - 1 )\n" \
+        "{\n" \
+        "UV_rhs[element_index + ((level + <%OFFSET%>) * 2)] = <%MIN%>;\n" \
+        "UV_rhs[element_index + ((level + <%OFFSET%>) * 2) + 1] = <%MAX%>;\n" \
+        "}\n"
+    compute_block_vector = \
+        "if ( level + <%OFFSET%> < nLevels[blockIdx.x] )\n" \
+        "{\n" \
+        "<%REAL_TYPE%><%VECTOR_SIZE%> temp = make_<%REAL_TYPE%>2(0.0, 0.0);\n" \
+        "temp.x = <%FMAX%>(fct_ttf_max[element_node0_index + level + <%OFFSET%>], fct_ttf_max[element_node1_index + level + <%OFFSET%>]);\n" \
+        "temp.x = <%FMAX%>(temp.x, fct_ttf_max[element_node2_index + level + <%OFFSET%>]);\n" \
+        "temp.y = <%FMIN%>(fct_ttf_min[element_node0_index + level + <%OFFSET%>], fct_ttf_min[element_node1_index + level + <%OFFSET%>]);\n" \
+        "temp.y = <%FMIN%>(temp.y, fct_ttf_min[element_node2_index + level + <%OFFSET%>]);\n" \
         "UV_rhs[element_index + level + <%OFFSET%>] = temp;\n" \
         "}\n" \
         "else if ( level + <%OFFSET%> < maxLevels - 1 )\n" \
@@ -37,9 +53,15 @@ def generate_code(tuning_parameters):
     compute = str()
     for tile in range(0, tuning_parameters["tiling_x"]):
         if tile == 0:
-            compute = compute + compute_block.replace(" + <%OFFSET%>", "")
+            if tuning_parameters["vector_size"] == 1:
+                compute = compute + compute_block.replace(" + <%OFFSET%>", "")
+            else:
+                compute = compute + compute_block_vector.replace(" + <%OFFSET%>", "")
         else:
-            compute = compute + compute_block.replace("<%OFFSET%>", str(tuning_parameters["block_size_x"] * tile))
+            if tuning_parameters["vector_size"] == 1:
+                compute = compute + compute_block.replace("<%OFFSET%>", str(tuning_parameters["block_size_x"] * tile))
+            else:
+                compute = compute + compute_block_vector.replace("<%OFFSET%>", str(tuning_parameters["block_size_x"] * tile))
     if tuning_parameters["real_type"] == "float":
         compute = compute.replace("<%MIN%>", str(numpy.finfo(numpy.float32).min))
         compute = compute.replace("<%MAX%>", str(numpy.finfo(numpy.float32).max))
@@ -48,10 +70,22 @@ def generate_code(tuning_parameters):
         compute = compute.replace("<%MAX%>", str(numpy.finfo(numpy.float64).max))
     else:
         raise ValueError
-    compute = compute.replace("<%REAL_TYPE%>", tuning_parameters["real_type"])
     code = code.replace("<%COMPUTE_BLOCK%>", compute)
+    if tuning_parameters["real_type"] == "float":
+        code = code.replace("<%FMAX%>", "fmaxf")
+        code = code.replace("<%FMIN%>", "fminf")
+    elif tuning_parameters["real_type"] == "double":
+        code = code.replace("<%FMAX%>", "fmax")
+        code = code.replace("<%FMIN%>", "fmin")
+    else:
+        raise ValueError
     code = code.replace("<%INT_TYPE%>", tuning_parameters["int_type"].replace("_", " "))
     code = code.replace("<%REAL_TYPE%>", tuning_parameters["real_type"])
+    if tuning_parameters["vector_size"] == 1:
+        code = code.replace("<%VECTOR_SIZE%>", "")
+    else:
+        code = code.replace("<%VECTOR_SIZE%>", str(tuning_parameters["vector_size"]))
+        code = code.replace("maxLevels * 2", "maxLevels")
     return code
 
 def reference(elements, levels, max_levels, nodes, UV_rhs, fct_ttf_max, fct_ttf_min, real_type):
@@ -72,11 +106,14 @@ def reference(elements, levels, max_levels, nodes, UV_rhs, fct_ttf_max, fct_ttf_
                 else:
                     raise ValueError
 
-def verify(control_data, data, atol=None):
-    return numpy.allclose(control_data, data, atol)
-
 def tune(elements, nodes, max_levels, max_tile, real_type):
     numpy_real_type = None
+    if real_type == "float":
+        numpy_real_type = numpy.float32
+    elif real_type == "double":
+        numpy_real_type = numpy.float64
+    else:
+        raise ValueError
     # Tuning and code generation parameters
     tuning_parameters = dict()
     tuning_parameters["int_type"] = ["unsigned_int", "int"]
@@ -84,15 +121,10 @@ def tune(elements, nodes, max_levels, max_tile, real_type):
     tuning_parameters["max_levels"] = [str(max_levels)]
     tuning_parameters["block_size_x"] = [32 * i for i in range(1, 33)]
     tuning_parameters["tiling_x"] = [i for i in range(1, max_tile)]
+    tuning_parameters["vector_size"] = [1, 2]
     constraints = list()
     constraints.append("block_size_x * tiling_x <= max_levels")
     # Memory allocation and initialization
-    if real_type == "float":
-        numpy_real_type = numpy.float32
-    elif real_type == "double":
-        numpy_real_type = numpy.float64
-    else:
-        raise ValueError
     uv_rhs = numpy.zeros(elements * max_levels * 2).astype(numpy_real_type)
     uv_rhs_control = numpy.zeros_like(uv_rhs).astype(numpy_real_type)
     fct_ttf_max = numpy.random.randn(nodes * max_levels).astype(numpy_real_type)
@@ -100,7 +132,7 @@ def tune(elements, nodes, max_levels, max_tile, real_type):
     levels = numpy.zeros(elements).astype(numpy.int32)
     element_nodes = numpy.zeros(elements * 3).astype(numpy.int32)
     for element in range(0, elements):
-        levels[element] = numpy.random.randint(0, max_levels)
+        levels[element] = numpy.random.randint(3, max_levels)
         element_nodes[(element * 3)] = numpy.random.randint(0, nodes)
         element_nodes[(element * 3) + 1] = numpy.random.randint(0, nodes)
         element_nodes[(element * 3) + 2] = numpy.random.randint(0, nodes)
@@ -109,7 +141,7 @@ def tune(elements, nodes, max_levels, max_tile, real_type):
     reference(elements, levels, max_levels, element_nodes, uv_rhs_control, fct_ttf_max, fct_ttf_min, real_type)
     arguments_control = [None, None, None, uv_rhs_control, None, None]
     # Tuning
-    results, environment = tune_kernel("fct_ale_a2", generate_code, "{} * block_size_x".format(elements), arguments, tuning_parameters, lang="CUDA", answer=arguments_control, verify=verify, restrictions=constraints, quiet=True)
+    results, environment = tune_kernel("fct_ale_a2", generate_code, "{} * block_size_x".format(elements), arguments, tuning_parameters, lang="CUDA", answer=arguments_control, restrictions=constraints, quiet=True)
     return results
 
 def parse_command_line():

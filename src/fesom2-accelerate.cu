@@ -6,26 +6,9 @@
 extern __global__ void fct_ale_a1(const int maxLevels, const double * __restrict__ fct_low_order, const double * __restrict__ ttf, const int * __restrict__ nLevels, double * fct_ttf_max, double * fct_ttf_min);
 extern __global__ void fct_ale_a2(const int maxLevels, const int * __restrict__ nLevels, const int * __restrict__ elementNodes, double2 * __restrict__ UV_rhs, const double * __restrict__ fct_ttf_max, const double * __restrict__ fct_ttf_min);
 extern __global__ void fct_ale_a2b(const int maxLevels, const int * __restrict__ nLevels, const int * __restrict__ elementNodes, double * __restrict__ UV_rhs, const double * __restrict__ fct_ttf_max, const double * __restrict__ fct_ttf_min, double bignumber);
-extern __global__ void fct_ale_pre_comm(   const int max_levels,
-				    const int num_nodes,
-                                    const int max_num_elems,
-                                    const int * __restrict__ node_levels,
-                                    const int * __restrict__ elem_levels,
-                                    const int * __restrict__ node_elems,
-                                    const int * __restrict__ node_num_elems,
-                                    const int * __restrict__ elem_nodes,
-                                    const double * __restrict__ fct_low_order, 
-                                    const double * __restrict__ ttf,
-                                    const double * __restrict__ fct_adf_v,
-                                    const double * __restrict__ fct_adf_h,
-                                    double * __restrict__ UVrhs,
-                                    double * __restrict__ fct_ttf_max, 
-                                    double * __restrict__ fct_ttf_min,
-                                    double * __restrict__ tvert_max,
-                                    double * __restrict__ tvert_min,
-                                    double * __restrict__ fct_plus,
-                                    double * __restrict__ fct_minus,
-				    const double bignr);
+extern __global__ void fct_ale_a3(const int maxLevels, const int maxElements, const int * __restrict__ nLevels, const int * __restrict__ elements_in_node, const int * __restrict__ number_elements_in_node, const double2 * __restrict__ UV_rhs, double * __restrict__ fct_ttf_max, double * __restrict__ fct_ttf_min, const double * __restrict__ fct_lo);
+extern __global__ void fct_ale_b1_vertical(const int maxLevels, const int * __restrict__ nLevels, const double * __restrict__ fct_adf_v, double * __restrict__ fct_plus, double * __restrict__ fct_minus);
+extern __global__ void fct_ale_pre_comm(   const int max_levels, const int num_nodes, const int max_num_elems, const int * __restrict__ node_levels, const int * __restrict__ elem_levels, const int * __restrict__ node_elems, const int * __restrict__ node_num_elems, const int * __restrict__ elem_nodes, const double * __restrict__ fct_low_order, const double * __restrict__ ttf, const double * __restrict__ fct_adf_v, const double * __restrict__ fct_adf_h, double * __restrict__ UVrhs, double * __restrict__ fct_ttf_max, double * __restrict__ fct_ttf_min, double * __restrict__ tvert_max, double * __restrict__ tvert_min, double * __restrict__ fct_plus, double * __restrict__ fct_minus, const double bignr);
 
 struct gpuMemory * allocate(void * hostMemory, std::size_t size)
 {
@@ -163,12 +146,6 @@ void fct_ale_pre_comm_acc_( int* alg_state, void** fct_ttf_max, void**  fct_ttf_
     bool status = true;
     int nNodes = (*myDim_nod2D) + (*eDim_nod2D);
 
-    //std::cerr<<"fct_ale_pre_comm_acc__ for "<<nNodes<<"nodes, nl = "<<*nl<<std::endl;
-    //std::cerr<<"fct LO: "<<*(static_cast<gpuMemory*>(*fct_LO))<<std::endl; 
-    //std::cerr<<"fct ttf max: "<<*(static_cast<gpuMemory*>(*fct_ttf_max))<<std::endl; 
-    //std::cerr<<"nlevels_nod2D: "<<*(static_cast<gpuMemory*>(*nlevels_nod2D))<<std::endl; 
-    //std::cerr<<"elem2D_nodes: "<<*(static_cast<gpuMemory*>(*elem2D_nodes))<<std::endl; 
-
     status = transferToDevice(*static_cast<gpuMemory*>(*fct_LO));
     if ( !status )
     {
@@ -182,7 +159,6 @@ void fct_ale_pre_comm_acc_( int* alg_state, void** fct_ttf_max, void**  fct_ttf_
     {
         return;
     }
-    //std::cerr<<"ttf: "<<*(static_cast<gpuMemory*>(*ttf))<<std::endl; 
 
     real_type* fct_lo_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(*fct_LO)->device_pointer);
     real_type* ttf_dev    = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(*ttf)->device_pointer);
@@ -224,14 +200,6 @@ void fct_ale_pre_comm_acc2_( int* alg_state, void** fct_ttf_max, void**  fct_ttf
              transferToDevice(*static_cast<gpuMemory*>(*fct_adf_v));
     if ( !status )
     {
-//        std::cerr<<"Error in transfer of fct_LO or fct_adf_v to GPU"<<std::endl;
-//        std::cerr<<"fct_LO host ptr:"<<static_cast<gpuMemory*>(*fct_LO)->host_pointer;
-//        std::cerr<<"fct_LO dev ptr :"<<static_cast<gpuMemory*>(*fct_LO)->device_pointer;
-//        std::cerr<<"fct_LO size    :"<<static_cast<gpuMemory*>(*fct_LO)->size;
-//        std::cerr<<"fct_adf_v host ptr:"<<static_cast<gpuMemory*>(*fct_adf_v)->host_pointer;
-//        std::cerr<<"fct_adf_v dev ptr :"<<static_cast<gpuMemory*>(*fct_adf_v)->device_pointer;
-//        std::cerr<<"fct_adf_v size    :"<<static_cast<gpuMemory*>(*fct_adf_v)->size;
-//        std::cerr<<std::endl;
         return;
     }
 
