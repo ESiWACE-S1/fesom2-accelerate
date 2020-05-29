@@ -156,4 +156,7 @@ if __name__ == "__main__":
     results = results + tune(command_line.nodes, command_line.max_levels, command_line.max_tile, True, command_line.real_type)
     best_configuration = min(results, key=lambda x : x["time"])
     print("/* Block size X: {} */".format(best_configuration["block_size_x"]))
-    print(generate_code(best_configuration))
+    if best_configuration["shared_memory"]:
+        print(generate_code_shared(best_configuration))
+    else:
+        print(generate_code(best_configuration))
