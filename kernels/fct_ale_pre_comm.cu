@@ -1,25 +1,9 @@
 /* Block size X: 32 */
-__global__ void fct_ale_pre_comm(   const int max_levels,
-                                    const int num_nodes,
-                                    const int max_num_elems,
-                                    const int * __restrict__ node_levels,
-                                    const int * __restrict__ elem_levels,
-                                    const int * __restrict__ node_elems,
-                                    const int * __restrict__ node_num_elems,
-                                    const int * __restrict__ elem_nodes,
-                                    const double * __restrict__ fct_low_order, 
-                                    const double * __restrict__ ttf,
-                                    const double * __restrict__ fct_adf_v,
-                                    const double * __restrict__ fct_adf_h,
-                                    double * __restrict__ UVrhs,
-                                    double * __restrict__ fct_ttf_max, 
-                                    double * __restrict__ fct_ttf_min,
-                                    double * __restrict__ tvert_max,
-                                    double * __restrict__ tvert_min,
-                                    double * __restrict__ fct_plus,
-                                    double * __restrict__ fct_minus,
-				    const double bignr)
+__global__ void fct_ale_pre_comm( const int max_levels, const int num_nodes, const int max_num_elems, const int * __restrict__ node_levels, const int * __restrict__ elem_levels, const int * __restrict__ node_elems, const int * __restrict__ node_num_elems, const int * __restrict__ elem_nodes, const double * __restrict__ fct_low_order, const double * __restrict__ ttf, const double * __restrict__ fct_adf_v, const double * __restrict__ fct_adf_h, double * __restrict__ UVrhs, double * __restrict__ fct_ttf_max, double * __restrict__ fct_ttf_min, double * __restrict__ fct_plus, double * __restrict__ fct_minus, const double bignr)
 {
+    extern __shared__ double sharedBuffer[];
+    double * tvert_max = (double *)(sharedBuffer);
+    double * tvert_min = (double *)(&sharedBuffer[max_levels]);
     const int node = (blockIdx.x * max_levels);
     const int numelems = node_num_elems[blockIdx.x];
 
@@ -55,8 +39,8 @@ __global__ void fct_ale_pre_comm(   const int max_levels,
             UVrhs[2 * elem_index * max_levels + level] = uvrhs1;
             UVrhs[2 * elem_index * max_levels + level + 1] = uvrhs2;
         }
-        tvert_max[node + level] = tvmax;
-        tvert_min[node + level] = tvmin;
+        tvert_max[level] = tvmax;
+        tvert_min[level] = tvmin;
     }
     __syncthreads();
     for ( int level = threadIdx.x; level < node_levels[blockIdx.x]; level += 32 )
@@ -68,10 +52,8 @@ __global__ void fct_ale_pre_comm(   const int max_levels,
         }
         else
         {
-            fct_ttf_max[node + level] = fmax(tvert_max[node + level], fmax(tvert_max[node + level - 1],
-                                                                           tvert_max[node + level + 1]));
-            fct_ttf_min[node + level] = fmin(tvert_min[node + level], fmin(tvert_min[node + level - 1],
-                                                                           tvert_min[node + level + 1]));
+            fct_ttf_max[node + level] = fmax(tvert_max[level], fmax(tvert_max[level - 1], tvert_max[level + 1]));
+            fct_ttf_min[node + level] = fmin(tvert_min[level], fmin(tvert_min[level - 1], tvert_min[level + 1]));
         }
         int adf_index = blockIdx.x * (max_levels + 1) + level;
         fct_plus[node + level]  = fmax(0.,fct_adf_v[adf_index]) + fmax(0.,-fct_adf_v[adf_index + 1]);
