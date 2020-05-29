@@ -1,5 +1,6 @@
 
 #include <fesom2-accelerate.h>
+#include <vector>
 
 const int TODO_INT = 0;
 const real_type TODO_REAL = 0.0;
@@ -372,6 +373,7 @@ void fct_ale_a3_reference_( int * nNodes2D, int * nLevels_nod2D, int * nl, real_
 {
     const int nNodes = *nNodes2D;
     const int maxLevels = *nl - 1;
+    std::vector<real_type> tvert_max(maxLevels), tvert_min(maxLevels);
     for ( int node2D = 0; node2D < nNodes; node2D++ )
     {
         int nelems = nod_in_elem2D_num[node2D];
