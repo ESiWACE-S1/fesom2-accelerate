@@ -101,7 +101,7 @@ def reference(nodes, levels, max_levels, fct_adf_v, fct_plus, fct_minus):
             fct_plus[item] = fct_plus[item] + (max(0.0, fct_adf_v[item]) + max(0.0, -fct_adf_v[(node * max_levels) + level + 1]))
             fct_minus[item] = fct_minus[item] + (min(0.0, fct_adf_v[item]) + min(0.0, -fct_adf_v[(node * max_levels) + level + 1]))
 
-def tune(nodes, max_levels, max_tile, shared_memory, real_type):
+def tune(nodes, max_levels, max_tile, real_type):
     numpy_real_type = None
     if real_type == "float":
         numpy_real_type = numpy.float32
@@ -111,15 +111,12 @@ def tune(nodes, max_levels, max_tile, shared_memory, real_type):
         raise ValueError
     # Tuning and code generation parameters
     tuning_parameters = dict()
-    tuning_parameters["shared_memory"] = [shared_memory]
+    tuning_parameters["shared_memory"] = [False]
     tuning_parameters["int_type"] = ["unsigned_int", "int"]
     tuning_parameters["real_type"] = [real_type]
     tuning_parameters["max_levels"] = [str(max_levels)]
     tuning_parameters["block_size_x"] = [32 * i for i in range(1, 33)]
     tuning_parameters["tiling_x"] = [i for i in range(1, max_tile)]
-    shared_memory_args = dict()
-    if shared_memory:
-        shared_memory_args["size"] = max_levels * numpy.dtype(numpy_real_type).itemsize
     constraints = list()
     constraints.append("block_size_x * tiling_x <= max_levels")
     # Memory allocation and initialization
@@ -136,11 +133,13 @@ def tune(nodes, max_levels, max_tile, shared_memory, real_type):
     reference(nodes, levels, max_levels, fct_adf_v, fct_plus_control, fct_minus_control)
     arguments_control = [None, None, None, fct_plus_control, fct_minus_control]
     # Tuning
-    if shared_memory:
-        results, environment = tune_kernel("fct_ale_b1_vertical", generate_code_shared, "{} * block_size_x".format(nodes), arguments, tuning_parameters, smem_args=shared_memory_args, lang="CUDA", answer=arguments_control, restrictions=constraints, quiet=True)
-    else:
-        results, environment = tune_kernel("fct_ale_b1_vertical", generate_code, "{} * block_size_x".format(nodes), arguments, tuning_parameters, lang="CUDA", answer=arguments_control, restrictions=constraints, quiet=True)
-    return results
+    results, environment = tune_kernel("fct_ale_b1_vertical", generate_code, "{} * block_size_x".format(nodes), arguments, tuning_parameters, lang="CUDA", answer=arguments_control, restrictions=constraints, quiet=True)
+    # Shared memory version
+    shared_memory_args = dict()
+    tuning_parameters["shared_memory"] = [True]
+    shared_memory_args["size"] = max_levels * numpy.dtype(numpy_real_type).itemsize
+    results_shared, environment = tune_kernel("fct_ale_b1_vertical", generate_code_shared, "{} * block_size_x".format(nodes), arguments, tuning_parameters, smem_args=shared_memory_args, lang="CUDA", answer=arguments_control, restrictions=constraints, quiet=True)
+    return results + results_shared
 
 def parse_command_line():
     parser = argparse.ArgumentParser(description="FESOM2 FCT ALE B1 VERTICAL")
@@ -152,8 +151,7 @@ def parse_command_line():
 
 if __name__ == "__main__":
     command_line = parse_command_line()
-    results = tune(command_line.nodes, command_line.max_levels, command_line.max_tile, False, command_line.real_type)
-    results = results + tune(command_line.nodes, command_line.max_levels, command_line.max_tile, True, command_line.real_type)
+    results = tune(command_line.nodes, command_line.max_levels, command_line.max_tile, command_line.real_type)
     best_configuration = min(results, key=lambda x : x["time"])
     print("/* Block size X: {} */".format(best_configuration["block_size_x"]))
     if best_configuration["shared_memory"]:
