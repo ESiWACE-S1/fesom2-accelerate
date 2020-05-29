@@ -137,7 +137,7 @@ def tune(nodes, max_levels, max_tile, shared_memory, real_type):
     arguments_control = [None, None, None, fct_plus_control, fct_minus_control]
     # Tuning
     if shared_memory:
-        results, environment = tune_kernel("fct_ale_b1_vertical", generate_code, "{} * block_size_x".format(nodes), arguments, tuning_parameters, smem_args=shared_memory_args, lang="CUDA", answer=arguments_control, restrictions=constraints, quiet=True)
+        results, environment = tune_kernel("fct_ale_b1_vertical", generate_code_shared, "{} * block_size_x".format(nodes), arguments, tuning_parameters, smem_args=shared_memory_args, lang="CUDA", answer=arguments_control, restrictions=constraints, quiet=True)
     else:
         results, environment = tune_kernel("fct_ale_b1_vertical", generate_code, "{} * block_size_x".format(nodes), arguments, tuning_parameters, lang="CUDA", answer=arguments_control, restrictions=constraints, quiet=True)
     return results
