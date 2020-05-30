@@ -173,7 +173,7 @@ void fct_ale_pre_comm_acc_( int* alg_state, void** fct_ttf_max, void**  fct_ttf_
     real_type* ttf_dev    = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(*ttf)->device_pointer);
     real_type* fct_adf_v_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(*fct_adf_v)->device_pointer);
     real_type* UV_rhs_dev    = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(*UV_rhs)->device_pointer);
-    real_type2* UV_rhs_dev2    = reinterpret_cast<real_type2*>(static_cast<gpuMemory*>(*UV_rhs)->device_pointer);
+    real2_type* UV_rhs_dev2    = reinterpret_cast<real2_type*>(static_cast<gpuMemory*>(*UV_rhs)->device_pointer);
     real_type* fct_ttf_max_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(*fct_ttf_max)->device_pointer);
     real_type* fct_ttf_min_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(*fct_ttf_min)->device_pointer);
 #ifdef SINGLE_KERNEL
@@ -181,7 +181,7 @@ void fct_ale_pre_comm_acc_( int* alg_state, void** fct_ttf_max, void**  fct_ttf_
 maxnElems, nlevels_nod2D_dev, nlevels_elem2D_dev, node_elems_dev, node_num_elems_dev, elem2D_nodes_dev fct_lo_dev, ttf_dev, fct_adf_v_dev, fct_adf_h, UV_rhs_dev, fct_ttf_max_dev, fct_ttf_min_dev, fct_plus_dev fct_min_dev, *bignumber);
     *alg_state = 4;
 #else
-    fct_ale_a1<<< dim3(nNodes), dim3(32) >>>(maxLevels, fct_lo_dev, ttf_dev, nlevels_nod2D_dev      fct_ttf_max_dev, fct_ttf_min_dev);
+    fct_ale_a1<<< dim3(nNodes), dim3(32) >>>(maxLevels, fct_lo_dev, ttf_dev, nlevels_nod2D_dev, fct_ttf_max_dev, fct_ttf_min_dev);
     *alg_state = 1;
     fct_ale_a2<<< dim3(*myDim_elem2D), dim3(32) >>>(maxLevels, nlevels_elem2D_dev, elem2D_nodes_dev, UV_rhs_dev2, fct_ttf_max_dev, fct_ttf_min_dev);
     *alg_state = 2;
