@@ -133,6 +133,8 @@ std::ostream& operator << (std::ostream& os, const gpuMemory& gpumem)
     return os;
 }
 
+#define SINGLE_KERNEL
+
 void fct_ale_pre_comm_acc_( int* alg_state, void** fct_ttf_max, void**  fct_ttf_min, void**  fct_plus, void**  fct_minus, void** ttf, real_type* ttf_vals, void** fct_LO, void**  fct_adf_v, void** fct_adf_h, void** UV_rhs, real_type* area_inv, int* myDim_nod2D, int* eDim_nod2D, int* myDim_elem2D, int* myDim_edge2D, int* nl, void** nlevels_nod2D, void** nlevels_elem2D, void** elem2D_nodes, void** nod_in_elem2D_num, void** nod_in_elem2D, int* nod_in_elem2D_dim, int* nod2D_edges, int* elem2D_edges, int* vlimit, real_type* flux_eps, real_type* bignumber, real_type* dt)
 {
     *alg_state = 0;
@@ -176,9 +178,10 @@ void fct_ale_pre_comm_acc_( int* alg_state, void** fct_ttf_max, void**  fct_ttf_
     real2_type* UV_rhs_dev2    = reinterpret_cast<real2_type*>(static_cast<gpuMemory*>(*UV_rhs)->device_pointer);
     real_type* fct_ttf_max_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(*fct_ttf_max)->device_pointer);
     real_type* fct_ttf_min_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(*fct_ttf_min)->device_pointer);
+    real_type* fct_plus_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(*fct_plus)->device_pointer);
+    real_type* fct_min_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(*fct_minus)->device_pointer);
 #ifdef SINGLE_KERNEL
-    fct_ale_pre_comm<<< dim3(nNodes), dim3(32), 2 * maxLevels * sizeof(real_type) >>>( maxLevels, *myDim_nod2D,
-maxnElems, nlevels_nod2D_dev, nlevels_elem2D_dev, node_elems_dev, node_num_elems_dev, elem2D_nodes_dev fct_lo_dev, ttf_dev, fct_adf_v_dev, fct_adf_h, UV_rhs_dev, fct_ttf_max_dev, fct_ttf_min_dev, fct_plus_dev fct_min_dev, *bignumber);
+    fct_ale_pre_comm<<< dim3(nNodes), dim3(32), 2 * maxLevels * sizeof(real_type) >>>(maxLevels, *myDim_nod2D, maxnElems, nlevels_nod2D_dev, nlevels_elem2D_dev, node_elems_dev, node_num_elems_dev, elem2D_nodes_dev, fct_lo_dev, ttf_dev, fct_adf_v_dev, nullptr, UV_rhs_dev, fct_ttf_max_dev, fct_ttf_min_dev, fct_plus_dev, fct_min_dev, *bignumber);
     *alg_state = 4;
 #else
     fct_ale_a1<<< dim3(nNodes), dim3(32) >>>(maxLevels, fct_lo_dev, ttf_dev, nlevels_nod2D_dev, fct_ttf_max_dev, fct_ttf_min_dev);
