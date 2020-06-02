@@ -120,6 +120,18 @@ void alloc_var_(void** ret, real_type* host_ptr, int* size, int* istat)
     *ret = (void*)gpumem;
 }
 
+void transfer_var_async_(void** mem, real_type* host_ptr, int* istat)
+{
+    struct gpuMemory* mem_gpu = static_cast<gpuMemory*>(*mem);
+    mem_gpu->host_pointer = (void*)host_ptr;
+    status = transferToDevice(*mem_gpu, synchronous=false);
+    if ( !status )
+    {
+        std::cerr<<"Error in transfer of ttf to device"<<std::endl;
+        *istat = 1;
+    }
+}
+
 void reserve_var_(void** ret, int* size, int* istat)
 {
     struct gpuMemory* gpumem = allocate(nullptr, (*size) * sizeof(real_type));
@@ -133,7 +145,7 @@ std::ostream& operator << (std::ostream& os, const gpuMemory& gpumem)
     return os;
 }
 
-void fct_ale_pre_comm_acc_( int* alg_state, void** fct_ttf_max, void**  fct_ttf_min, void**  fct_plus, void**  fct_minus, void** ttf, real_type* ttf_vals, void** fct_LO, void**  fct_adf_v, void** fct_adf_h, void** UV_rhs, real_type* area_inv, int* myDim_nod2D, int* eDim_nod2D, int* myDim_elem2D, int* myDim_edge2D, int* nl, void** nlevels_nod2D, void** nlevels_elem2D, void** elem2D_nodes, void** nod_in_elem2D_num, void** nod_in_elem2D, int* nod_in_elem2D_dim, int* nod2D_edges, int* elem2D_edges, int* vlimit, real_type* flux_eps, real_type* bignumber, real_type* dt)
+void fct_ale_pre_comm_acc_( int* alg_state, void** fct_ttf_max, void**  fct_ttf_min, void**  fct_plus, void**  fct_minus, void** ttf, void** fct_LO, void**  fct_adf_v, void** fct_adf_h, void** UV_rhs, real_type* area_inv, int* myDim_nod2D, int* eDim_nod2D, int* myDim_elem2D, int* myDim_edge2D, int* nl, void** nlevels_nod2D, void** nlevels_elem2D, void** elem2D_nodes, void** nod_in_elem2D_num, void** nod_in_elem2D, int* nod_in_elem2D_dim, int* nod2D_edges, int* elem2D_edges, int* vlimit, real_type* flux_eps, real_type* bignumber, real_type* dt)
 {
     *alg_state = 0;
     bool status = true;
@@ -143,14 +155,6 @@ void fct_ale_pre_comm_acc_( int* alg_state, void** fct_ttf_max, void**  fct_ttf_
     if ( !status )
     {
         std::cerr<<"Error in transfer of fct_LO to device"<<std::endl;
-        return;
-    }
-    struct gpuMemory* ttf_gpu = static_cast<gpuMemory*>(*ttf);
-    ttf_gpu->host_pointer = (void*)ttf_vals;
-    status = transferToDevice(*ttf_gpu);
-    if ( !status )
-    {
-        std::cerr<<"Error in transfer of fct_ttf to device"<<std::endl;
         return;
     }
 #ifdef SINGLE_KERNEL
