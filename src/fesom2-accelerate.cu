@@ -124,7 +124,7 @@ void transfer_var_async_(void** mem, real_type* host_ptr, int* istat)
 {
     struct gpuMemory* mem_gpu = static_cast<gpuMemory*>(*mem);
     mem_gpu->host_pointer = (void*)host_ptr;
-    status = transferToDevice(*mem_gpu, synchronous=false);
+    int status = transferToDevice(*mem_gpu, false);
     if ( !status )
     {
         std::cerr<<"Error in transfer of ttf to device"<<std::endl;
