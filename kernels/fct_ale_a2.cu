@@ -18,7 +18,7 @@ UV_rhs[element_index + level] = temp;
 }
 else if ( level < maxLevels - 1 )
 {
-UV_rhs[element_index + level] = make_double2(-1.7976931348623157e+308, 1.7976931348623157e+308);
+UV_rhs[element_index + level] = make_double2(-1.e+3, 1.e+3);
 }
 }
 }
