@@ -8,8 +8,8 @@ extern __global__ void fct_ale_a2(const int maxLevels, const int * __restrict__ 
 extern __global__ void fct_ale_a2b(const int maxLevels, const int * __restrict__ nLevels, const int * __restrict__ elementNodes, double * __restrict__ UV_rhs, const double * __restrict__ fct_ttf_max, const double * __restrict__ fct_ttf_min, double bignumber);
 extern __global__ void fct_ale_a3(const int maxLevels, const int maxElements, const int * __restrict__ nLevels, const int * __restrict__ elements_in_node, const int * __restrict__ number_elements_in_node, const double2 * __restrict__ UV_rhs, double * __restrict__ fct_ttf_max, double * __restrict__ fct_ttf_min, const double * __restrict__ fct_lo);
 extern __global__ void fct_ale_b1_vertical(const int maxLevels, const int * __restrict__ nLevels, const double * __restrict__ fct_adf_v, double * __restrict__ fct_plus, double * __restrict__ fct_minus);
-extern __global__ void fct_ale_b1_horizontal(const int maxLevels, const int * __restrict__ nLevels, const int * __restrict__ nodesPerEdge, const int * __restrict__ elementsPerEdge, const double * __restrict__ fct_adf_h, double * __restrict__ fct_plus, double * __restrict__ fct_minus)
-extern __global__ void fct_ale_pre_comm(   const int max_levels, const int num_nodes, const int max_num_elems, const int * __restrict__ node_levels, const int * __restrict__ elem_levels, const int * __restrict__ node_elems, const int * __restrict__ node_num_elems, const int * __restrict__ elem_nodes, const double * __restrict__ fct_low_order, const double * __restrict__ ttf, const double * __restrict__ fct_adf_v, const double * __restrict__ fct_adf_h, double * __restrict__ UVrhs, double * __restrict__ fct_ttf_max, double * __restrict__ fct_ttf_min, double * __restrict__ fct_plus, double * __restrict__ fct_minus, const double bignr);
+extern __global__ void fct_ale_b1_horizontal(const int maxLevels, const int * __restrict__ nLevels, const int * __restrict__ nodesPerEdge, const int * __restrict__ elementsPerEdge, const double * __restrict__ fct_adf_h, double * __restrict__ fct_plus, double * __restrict__ fct_minus);
+extern __global__ void fct_ale_pre_comm(const int max_levels, const int num_nodes, const int max_num_elems, const int * __restrict__ node_levels, const int * __restrict__ elem_levels, const int * __restrict__ node_elems, const int * __restrict__ node_num_elems, const int * __restrict__ elem_nodes, const double * __restrict__ fct_low_order, const double * __restrict__ ttf, const double * __restrict__ fct_adf_v, const double * __restrict__ fct_adf_h, double * __restrict__ UVrhs, double * __restrict__ fct_ttf_max, double * __restrict__ fct_ttf_min, double * __restrict__ fct_plus, double * __restrict__ fct_minus, const double bignr);
 
 struct gpuMemory * allocate(void * hostMemory, std::size_t size)
 {
@@ -121,6 +121,13 @@ void alloc_var_(void** ret, real_type* host_ptr, int* size, int* istat)
     *ret = (void*)gpumem;
 }
 
+void alloc_var_pinned_(void** ret, void** host_ptr, int* size, int* istat)
+{
+    // TODO: Check errors
+    cudaMallocHost(host_ptr, (*size) * sizeof(real_type));
+    alloc_var_(ret, (real_type*)(*host_ptr), (*size) * sizeof(real_type), istat);
+}
+
 void transfer_var_async_(void** mem, real_type* host_ptr, int* istat)
 {
     struct gpuMemory* mem_gpu = static_cast<gpuMemory*>(*mem);
@@ -160,17 +167,8 @@ void fct_ale_pre_comm_acc_( int* alg_state, void** fct_ttf_max, void**  fct_ttf_
         std::cerr<<"Error in transfer of fct_LO to device"<<std::endl;
         return;
     }
-#ifdef SINGLE_KERNEL
-    status = transferToDevice(*static_cast<gpuMemory*>(*fct_adf_v));
-    if ( !status )
-    {
-        std::cerr<<"Error in transfer of fct_adf_v to device"<<std::endl;
-        return;
-    }
-#else
-    transferToDevice(*static_cast<gpuMemory*>(*fct_adf_v), false);
-    transferToDevice(*static_cast<gpuMemory*>(*fct_adf_h), false);
-#endif
+    // ttf: transferred before fct_ale_muscl_LH
+    // fct_adf_v, fct_adf_h: transferred in fct_ale_muscl_LH
 
     int maxLevels = *nl - 1;
     int maxnElems = *nod_in_elem2D_dim;
@@ -180,7 +178,7 @@ void fct_ale_pre_comm_acc_( int* alg_state, void** fct_ttf_max, void**  fct_ttf_
     int* node_num_elems_dev = reinterpret_cast<int*>(static_cast<gpuMemory*>(*nod_in_elem2D_num)->device_pointer);
     int* elem2D_nodes_dev = reinterpret_cast<int*>(static_cast<gpuMemory*>(*elem2D_nodes)->device_pointer);
     int* nod2D_edges_dev = reinterpret_cast<int*>(static_cast<gpuMemory*>(*nod2D_edges)->device_pointer);
-    int* elem2D_edges_dev = reinterpret_cast<int*>(static_cast<gpuMemory*>(elem2D_edges)->device_pointer);
+    int* elem2D_edges_dev = reinterpret_cast<int*>(static_cast<gpuMemory*>(*elem2D_edges)->device_pointer);
     real_type* fct_lo_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(*fct_LO)->device_pointer);
     real_type* ttf_dev    = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(*ttf)->device_pointer);
     real_type* fct_adf_v_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(*fct_adf_v)->device_pointer);
@@ -201,8 +199,8 @@ void fct_ale_pre_comm_acc_( int* alg_state, void** fct_ttf_max, void**  fct_ttf_
     *alg_state = 2;
     fct_ale_a3<<< dim3(*myDim_nod2D), dim3(32), 2 * maxLevels * sizeof(real_type) >>>(maxLevels, maxnElems, nlevels_nod2D_dev, node_elems_dev, node_num_elems_dev, UV_rhs_dev2, fct_ttf_max_dev, fct_ttf_min_dev, fct_lo_dev);
     *alg_state = 3;
-    cudaDeviceSynchronize(); //wait until fct_adf_v and fct_adf_h have arrived...
     fct_ale_b1_vertical<<< dim3(*myDim_nod2D), dim3(32) >>>(maxLevels, nlevels_nod2D_dev, fct_adf_v_dev, fct_plus_dev, fct_min_dev);
+    *alg_state = 4;
     fct_ale_b1_horizontal<<< dim3(*myDim_nod2D), dim3(32) >>>(maxLevels, nlevels_elem2D_dev, nod2D_edges_dev, elem2D_edges_dev, fct_adf_h_dev, fct_plus_dev, fct_min_dev);
     *alg_state = 5;
 #endif
@@ -222,8 +220,8 @@ void fct_ale_pre_comm_acc_( int* alg_state, void** fct_ttf_max, void**  fct_ttf_
         return;
     }
     status =  transferToHost(*static_cast<gpuMemory*>(*fct_minus));
-    if ( !status )
     {
+    if ( !status )
         std::cerr<<"Error in transfer of fct_minus to host"<<std::endl;
         *alg_state = 0;
         return;
