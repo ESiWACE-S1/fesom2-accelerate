@@ -34,6 +34,28 @@ def generate_code(tuning_parameters):
         "fct_minus[nodeOne + level + <%OFFSET%>] = fct_minus[nodeOne + level + <%OFFSET%>] + <%MIN%>(0.0, fct_adf_h_value);\n" \
         "fct_plus[nodeTwo + level + <%OFFSET%>] = fct_plus[nodeTwo + level + <%OFFSET%>] + <%MAX%>(0.0, -fct_adf_h_value);\n" \
         "fct_minus[nodeTwo + level + <%OFFSET%>] = fct_minus[nodeTwo + level + <%OFFSET%>] + <%MIN%>(0.0, -fct_adf_h_value);\n"
+    if tuning_parameters["tiling_x"] > 1:
+        code = code.replace("<%BLOCK_SIZE%>", str(tuning_parameters["block_size_x"] * tuning_parameters["tiling_x"]))
+    else:
+        code = code.replace("<%BLOCK_SIZE%>", str(tuning_parameters["block_size_x"]))
+    compute = str()
+    for tile in range(0, tuning_parameters["tiling_x"]):
+        if tile == 0:
+            compute = compute + compute_block.replace(" + <%OFFSET%>", "")
+        else:
+            offset = tuning_parameters["block_size_x"] * tile
+            compute = compute + "if (level + {} < levelBound)\n{{\n{}}}\n".format(str(offset), compute_block.replace("<%OFFSET%>", str(offset)))
+    code = code.replace("<%COMPUTE_BLOCK%>", compute)
+    if tuning_parameters["real_type"] == "float":
+        code = code.replace("<%FMAX%>", "fmaxf")
+        code = code.replace("<%FMIN%>", "fminf")
+    elif tuning_parameters["real_type"] == "double":
+        code = code.replace("<%FMAX%>", "fmax")
+        code = code.replace("<%FMIN%>", "fmin")
+    else:
+        raise ValueError
+    code = code.replace("<%INT_TYPE%>", tuning_parameters["int_type"].replace("_", " "))
+    code = code.replace("<%REAL_TYPE%>", tuning_parameters["real_type"])
     return code
 
 def reference(edges, nodes_per_edge, elements_per_edge, levels, max_levels, fct_adf_h, fct_plus, fct_minus):
@@ -90,7 +112,7 @@ def tune(nodes, edges, elements, max_levels, max_tile, real_type):
     reference(edges, nodes_per_edge, elements_per_edge, levels, max_levels, fct_adf_h, fct_plus_control, fct_minus_control)
     arguments_control = []
     # Tuning
-    results, environment = tune_kernel("fct_ale_b1_vertical", generate_code, "{} * block_size_x".format(nodes), arguments, tuning_parameters, lang="CUDA", answer=arguments_control, restrictions=constraints, quiet=True)
+    results, environment = tune_kernel("fct_ale_b1_vertical", generate_code, "{} * block_size_x".format(edges), arguments, tuning_parameters, lang="CUDA", answer=arguments_control, restrictions=constraints, quiet=True)
     return results
 
 def parse_command_line():
