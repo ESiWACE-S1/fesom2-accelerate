@@ -70,8 +70,8 @@ def tune(nodes, max_levels, max_tile, real_type):
     constraints = list()
     constraints.append("block_size_x * tiling_x <= max_levels")
     # Memory allocation and initialization
-    dt = numpy.random.random()
-    flux_epsilon = 1e-16
+    dt = numpy.random.random().astype(numpy_real_type)
+    flux_epsilon = numpy.random.random().astype(numpy_real_type)
     fct_ttf_max = numpy.random.randn(nodes * max_levels).astype(numpy_real_type)
     fct_ttf_min = numpy.random.randn(nodes * max_levels).astype(numpy_real_type)
     area = numpy.random.randn(nodes * max_levels).astype(numpy_real_type)
@@ -82,10 +82,10 @@ def tune(nodes, max_levels, max_tile, real_type):
     levels = numpy.zeros(nodes).astype(numpy.int32)
     for node in range(0, nodes):
         levels[node] = numpy.random.randint(3, max_levels)
-    arguments = []
+    arguments = [numpy.int32(max_levels), dt, flux_epsilon, levels, area, fct_ttf_max, fct_ttf_min, fct_plus, fct_minus]
     # Reference
     reference(nodes, dt, flux_epsilon, levels, max_levels, area, fct_ttf_max, fct_ttf_min, fct_plus_control, fct_minus_control)
-    arguments_control = []
+    arguments_control = [None, None, None, None, None, None, None, fct_plus_control, fct_minus_control]
     # Tuning
     results, environment = tune_kernel("fct_ale_b2", generate_code, "{} * block_size_x".format(nodes), arguments, tuning_parameters, lang="CUDA", answer=arguments_control, restrictions=constraints, quiet=True)
     return results
