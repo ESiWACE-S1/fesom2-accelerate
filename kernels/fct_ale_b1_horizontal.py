@@ -120,14 +120,14 @@ def parse_command_line():
     parser.add_argument("--nodes", help="The number of nodes.", type=int, required=True)
     parser.add_argument("--edges", help="The number of edges.", type=int, required=True)
     parser.add_argument("--elements", help="The number of elements.", type=int, required=True)
-    parser.add_argument("--max_levels_node", help="The maximum number of vertical levels.", type=int, required=True)
+    parser.add_argument("--max_levels", help="The maximum number of vertical levels.", type=int, required=True)
     parser.add_argument("--max_tile", help="The maximum tiling factor.", type=int, default=2)
     parser.add_argument("--real_type", help="The floating point type to use.", choices=["float", "double"], type=str, required=True)
     return parser.parse_args()
 
 if __name__ == "__main__":
     command_line = parse_command_line()
-    results = tune()
+    results = tune(command_line.nodes, command_line.edges, command_line.elements, command_line.max_levels, command_line.max_tile, command_line.real_type)
     best_configuration = min(results, key=lambda x : x["time"])
     print("/* Block size X: {} */".format(best_configuration["block_size_x"]))
     print(generate_code(best_configuration))
