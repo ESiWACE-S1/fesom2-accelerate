@@ -30,10 +30,10 @@ def generate_code(tuning_parameters):
         "}\n"
     compute_block = \
         "fct_adf_h_value = fct_adf_h[(blockIdx.x * maxLevels) + level + <%OFFSET%>];\n" \
-        "atomicAdd(&(fct_plus[nodeOne + level + <%OFFSET%>])<%FMAX%>(0.0, fct_adf_h_value));\n" \
-        "atomicAdd(&(fct_minus[nodeOne + level + <%OFFSET%>])<%FMIN%>(0.0, fct_adf_h_value));\n" \
-        "atomicAdd(&(fct_plus[nodeTwo + level + <%OFFSET%>])<%FMAX%>(0.0, -fct_adf_h_value));\n" \
-        "atomicAdd(&(fct_minus[nodeTwo + level + <%OFFSET%>])<%FMIN%>(0.0, -fct_adf_h_value));\n"
+        "atomicAdd(&(fct_plus[nodeOne + level + <%OFFSET%>]), <%FMAX%>(0.0, fct_adf_h_value));\n" \
+        "atomicAdd(&(fct_minus[nodeOne + level + <%OFFSET%>]), <%FMIN%>(0.0, fct_adf_h_value));\n" \
+        "atomicAdd(&(fct_plus[nodeTwo + level + <%OFFSET%>]), <%FMAX%>(0.0, -fct_adf_h_value));\n" \
+        "atomicAdd(&(fct_minus[nodeTwo + level + <%OFFSET%>]), <%FMIN%>(0.0, -fct_adf_h_value));\n"
     if tuning_parameters["tiling_x"] > 1:
         code = code.replace("<%BLOCK_SIZE%>", str(tuning_parameters["block_size_x"] * tuning_parameters["tiling_x"]))
     else:
