@@ -105,7 +105,7 @@ def tune(nodes, edges, elements, max_levels, max_tile, real_type):
     for edge in range(0, edges):
         nodes_per_edge[edge * 2] = numpy.random.randint(0, nodes)
         nodes_per_edge[(edge * 2) + 1] = numpy.random.randint(0, nodes)
-        elements_per_edge[edge * 2] = numpy.random.randint(0, elements)
+        elements_per_edge[edge * 2] = numpy.random.randint(1, elements)
         elements_per_edge[(edge * 2) + 1] = numpy.random.randint(0, elements)
     arguments = [numpy.int32(max_levels), levels, nodes_per_edge, elements_per_edge, fct_adf_h, fct_plus, fct_minus]
     # Reference
