@@ -17,7 +17,7 @@ def generate_code(tuning_parameters):
     compute_block = \
         "index = (blockIdx.x * maxLevels) + level + <%OFFSET%>;\n" \
         "area_item = area[index];\n" \
-        "ftc_plus[index] = <%FMIN%>(1.0, fct_ttf_max[index] / (((fct_plus[index] * dt) / area_item) + fluxEpsilon));\n" \
+        "fct_plus[index] = <%FMIN%>(1.0, fct_ttf_max[index] / (((fct_plus[index] * dt) / area_item) + fluxEpsilon));\n" \
         "fct_minus[index] = <%FMIN%>(1.0, fct_ttf_min[index] / (((fct_minus[index] * dt) / area_item) - fluxEpsilon));\n"
     if tuning_parameters["tiling_x"] > 1:
         code = code.replace("<%BLOCK_SIZE%>", str(tuning_parameters["block_size_x"] * tuning_parameters["tiling_x"]))
