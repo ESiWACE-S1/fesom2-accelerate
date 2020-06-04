@@ -65,9 +65,9 @@ def reference(edges, nodes_per_edge, elements_per_edge, levels, max_levels, fct_
         element_one = elements_per_edge[edge * 2]
         element_two = elements_per_edge[(edge * 2) + 1]
         if element_two <= 0:
-            number_levels = max(levels(element_one), 0)
+            number_levels = max(levels[element_one], 0)
         else:
-            number_levels = max(levels(element_one), levels(element_two))
+            number_levels = max(levels[element_one], levels[element_two])
         for level in range(0, number_levels):
             fct_plus[(node_one * max_levels) + level] = fct_plus[(node_one * max_levels) + level] + max(0.0, fct_adf_h[(edge * max_levels) + level])
             fct_minus[(node_one * max_levels) + level] = fct_minus[(node_one * max_levels) + level] + min(0.0, fct_adf_h[(edge * max_levels) + level])
