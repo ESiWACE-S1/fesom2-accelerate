@@ -107,10 +107,10 @@ def tune(nodes, edges, elements, max_levels, max_tile, real_type):
         nodes_per_edge[(edge * 2) + 1] = numpy.random.randint(0, nodes)
         elements_per_edge[edge * 2] = numpy.random.randint(0, elements)
         elements_per_edge[(edge * 2) + 1] = numpy.random.randint(0, elements)
-    arguments = []
+    arguments = [numpy.int32(max_levels), levels, nodes_per_edge, elements_per_edge, fct_adf_h, fct_plus, fct_minus]
     # Reference
     reference(edges, nodes_per_edge, elements_per_edge, levels, max_levels, fct_adf_h, fct_plus_control, fct_minus_control)
-    arguments_control = []
+    arguments_control = [None, None, None, None, None, fct_plus_control, fct_minus_control]
     # Tuning
     results, environment = tune_kernel("fct_ale_b1_vertical", generate_code, "{} * block_size_x".format(edges), arguments, tuning_parameters, lang="CUDA", answer=arguments_control, restrictions=constraints, quiet=True)
     return results
