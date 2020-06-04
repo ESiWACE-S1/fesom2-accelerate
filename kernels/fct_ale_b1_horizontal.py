@@ -15,11 +15,11 @@ def generate_code(tuning_parameters):
         "levelBound = elementsPerEdge[(blockIdx.x * 2) + 1];\n" \
         "if ( levelBound > 0 )\n" \
         "{\n" \
-        "levelBound = max(nLevels[elementsPerEdge[(blockIdx.x * 2)], nLevels[levelBound]);\n" \
+        "levelBound = max(nLevels[elementsPerEdge[(blockIdx.x * 2)]], nLevels[levelBound]);\n" \
         "}\n" \
         "else" \
         "{\n" \
-        "levelBound = max(nLevels[elementsPerEdge[(blockIdx.x * 2)], 0);\n" \
+        "levelBound = max(nLevels[elementsPerEdge[(blockIdx.x * 2)]], 0);\n" \
         "}\n" \
         "/* Compute fct_plus and fct_minus */\n" \
         "for ( <%INT_TYPE%> level = threadIdx.x; level < levelBound; level += <%BLOCK_SIZE%> )\n" \
