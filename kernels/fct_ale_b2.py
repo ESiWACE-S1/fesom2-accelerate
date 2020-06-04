@@ -7,10 +7,10 @@ def generate_code(tuning_parameters):
     code = \
         "__global__ void fct_ale_b2(const int maxLevels, const <%REAL_TYPE%> dt, const <%REAL_TYPE%> fluxEpsilon, const int * __restrict__ nLevels, const <%REAL_TYPE%> * __restrict__ area, const <%REAL_TYPE%> * __restrict__ fct_ttf_max, const <%REAL_TYPE%> * __restrict__ fct_ttf_min, <%REAL_TYPE%> * __restrict__ fct_plus, <%REAL_TYPE%> * __restrict__ fct_minus)\n" \
         "{\n" \
-        "for ( <%INT_TYPE%> level = threadIdx.x; level < nLevels[blockIdx.x]; level += <%BLOCK_SIZE%> )\n" \
-        "{\n" \
         "<%INT_TYPE%> index = 0;\n" \
         "<%REAL_TYPE%> area_item = 0;\n" \
+        "for ( <%INT_TYPE%> level = threadIdx.x; level < nLevels[blockIdx.x]; level += <%BLOCK_SIZE%> )\n" \
+        "{\n" \
         "<%COMPUTE_BLOCK%>" \
         "}\n" \
         "}\n"
