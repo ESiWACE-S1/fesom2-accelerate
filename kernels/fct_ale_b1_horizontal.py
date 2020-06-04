@@ -17,7 +17,7 @@ def generate_code(tuning_parameters):
         "{\n" \
         "levelBound = max(nLevels[elementsPerEdge[(blockIdx.x * 2)]], nLevels[levelBound]);\n" \
         "}\n" \
-        "else" \
+        "else\n" \
         "{\n" \
         "levelBound = max(nLevels[elementsPerEdge[(blockIdx.x * 2)]], 0);\n" \
         "}\n" \
