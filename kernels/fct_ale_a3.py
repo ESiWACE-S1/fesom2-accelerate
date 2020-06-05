@@ -8,11 +8,13 @@ def generate_code(tuning_parameters):
         "__global__ void fct_ale_a3(const int maxLevels, const int maxElements, const int * __restrict__ nLevels, const int * __restrict__ elements_in_node, const int * __restrict__ number_elements_in_node, const <%REAL_TYPE%><%VECTOR_SIZE%> * __restrict__ UV_rhs, <%REAL_TYPE%> * __restrict__ fct_ttf_max, <%REAL_TYPE%> * __restrict__ fct_ttf_min, const <%REAL_TYPE%> * __restrict__ fct_lo)\n" \
         "{\n" \
         "<%INT_TYPE%> item = 0;\n" \
+        "const <%INT_TYPE%> maxNodeLevel = nLevels[blockIdx.x];\n" \
         "extern __shared__ <%REAL_TYPE%> sharedBuffer[];\n" \
         "<%REAL_TYPE%> * tvert_max = (<%REAL_TYPE%> *)(sharedBuffer);\n" \
         "<%REAL_TYPE%> * tvert_min = (<%REAL_TYPE%> *)(&sharedBuffer[maxLevels]);\n" \
+        "\n" \
         "/* Compute tvert_max and tvert_min per level */\n" \
-        "for ( <%INT_TYPE%> level = threadIdx.x; level < nLevels[blockIdx.x]; level += <%BLOCK_SIZE%> )\n" \
+        "for ( <%INT_TYPE%> level = threadIdx.x; level < maxNodeLevel - 1; level += <%BLOCK_SIZE%> )\n" \
         "{\n" \
         "<%REAL_TYPE%> tvert_max_temp = 0.0;\n" \
         "<%REAL_TYPE%> tvert_min_temp = 0.0;\n" \
@@ -21,7 +23,7 @@ def generate_code(tuning_parameters):
         "__syncthreads();\n" \
         "/* Update fct_ttf_max and fct_ttf_min per level */\n" \
         "item = blockIdx.x * maxLevels;\n" \
-        "for ( <%INT_TYPE%> level = threadIdx.x + 1; level < nLevels[blockIdx.x] - 2; level += <%BLOCK_SIZE%> )\n" \
+        "for ( <%INT_TYPE%> level = threadIdx.x + 1; level < maxNodeLevel - 2; level += <%BLOCK_SIZE%> )\n" \
         "{\n" \
         "<%REAL_TYPE%> temp = 0.0;\n" \
         "<%UPDATE%>" \
@@ -31,29 +33,29 @@ def generate_code(tuning_parameters):
         "{\n" \
         "fct_ttf_max[item] = tvert_max[0] - fct_lo[item];\n" \
         "fct_ttf_min[item] = tvert_min[0] - fct_lo[item];\n" \
-        "fct_ttf_max[item + (nLevels[blockIdx.x] - 1)] = tvert_max[nLevels[blockIdx.x] - 1] - fct_lo[item + (nLevels[blockIdx.x] - 1)];\n" \
-        "fct_ttf_min[item + (nLevels[blockIdx.x] - 1)] = tvert_min[nLevels[blockIdx.x] - 1] - fct_lo[item + (nLevels[blockIdx.x] - 1)];\n" \
+        "fct_ttf_max[item + (maxNodeLevel - 1)] = tvert_max[maxNodeLevel - 1] - fct_lo[item + (maxNodeLevel - 1)];\n" \
+        "fct_ttf_min[item + (maxNodeLevel - 1)] = tvert_min[maxNodeLevel - 1] - fct_lo[item + (maxNodeLevel - 1)];\n" \
         "}\n" \
         "}\n"
     reduction_block = \
-        "item = (elements_in_node[(blockIdx.x * maxElements)] * maxLevels * 2) + ((level + <%OFFSET%>) * 2);\n" \
+        "item = ((elements_in_node[(blockIdx.x * maxElements)] - 1) * maxLevels * 2) + ((level + <%OFFSET%>) * 2);\n" \
         "tvert_max_temp = UV_rhs[item];\n" \
         "tvert_min_temp = UV_rhs[item + 1];\n" \
         "for ( <%INT_TYPE%> element = 1; element < number_elements_in_node[blockIdx.x]; element++ )\n" \
         "{\n" \
-        "item = (elements_in_node[(blockIdx.x * maxElements) + element] * maxLevels * 2) + ((level + <%OFFSET%>) * 2);\n" \
+        "item = ((elements_in_node[(blockIdx.x * maxElements) + element] - 1) * maxLevels * 2) + ((level + <%OFFSET%>) * 2);\n" \
         "tvert_max_temp = <%FMAX%>(tvert_max_temp, UV_rhs[item]);\n" \
         "tvert_min_temp = <%FMIN%>(tvert_min_temp, UV_rhs[item + 1]);\n" \
         "}\n" \
         "tvert_max[level + <%OFFSET%>] = tvert_max_temp;\n" \
         "tvert_min[level + <%OFFSET%>] = tvert_min_temp;\n"
     reduction_block_vector = \
-        "item = (elements_in_node[(blockIdx.x * maxElements)] * maxLevels) + (level + <%OFFSET%>);\n" \
+        "item = ((elements_in_node[(blockIdx.x * maxElements)] - 1) * maxLevels) + (level + <%OFFSET%>);\n" \
         "tvert_max_temp = (UV_rhs[item]).x;\n" \
         "tvert_min_temp = (UV_rhs[item]).y;\n" \
         "for ( <%INT_TYPE%> element = 1; element < number_elements_in_node[blockIdx.x]; element++ )\n" \
         "{\n" \
-        "item = (elements_in_node[(blockIdx.x * maxElements) + element] * maxLevels) + (level + <%OFFSET%>);\n" \
+        "item = ((elements_in_node[(blockIdx.x * maxElements) + element] - 1) * maxLevels) + (level + <%OFFSET%>);\n" \
         "tvert_max_temp = <%FMAX%>(tvert_max_temp, (UV_rhs[item]).x);\n" \
         "tvert_min_temp = <%FMIN%>(tvert_min_temp, (UV_rhs[item]).y);\n" \
         "}\n" \
@@ -78,10 +80,10 @@ def generate_code(tuning_parameters):
         else:
             offset = tuning_parameters["block_size_x"] * tile
             if tuning_parameters["vector_size"] == 1:
-                reduction = reduction + "if (level + {} < nLevels[blockIdx.x])\n{{\n{}}}\n".format(str(offset), reduction_block.replace("<%OFFSET%>", str(offset)))
+                reduction = reduction + "if (level + {} < maxNodeLevel - 1)\n{{\n{}}}\n".format(str(offset), reduction_block.replace("<%OFFSET%>", str(offset)))
             else:
-                reduction = reduction + "if (level + {} < nLevels[blockIdx.x])\n{{\n{}}}\n".format(str(offset), reduction_block_vector.replace("<%OFFSET%>", str(offset)))
-            update = update + "if (level + {} < nLevels[blockIdx.x] - 2)\n{{\n{}}}\n".format(str(offset), update_block.replace("<%OFFSET%>", str(offset)))
+                reduction = reduction + "if (level + {} < maxNodeLevel - 1)\n{{\n{}}}\n".format(str(offset), reduction_block_vector.replace("<%OFFSET%>", str(offset)))
+            update = update + "if (level + {} < maxNodeLevel - 2)\n{{\n{}}}\n".format(str(offset), update_block.replace("<%OFFSET%>", str(offset)))
     code = code.replace("<%REDUCTION%>", reduction)
     code = code.replace("<%UPDATE%>", update)
     if tuning_parameters["tiling_x"] > 1:
@@ -109,11 +111,11 @@ def reference(vlimit, nodes, levels, max_levels, elements_in_node, number_elemen
         for node in range(0, nodes):
             tvert_max = list()
             tvert_min = list()
-            for level in range(0, levels[node]):
+            for level in range(0, levels[node] - 1):
                 max_temp = numpy.finfo(real_type).min
                 min_temp = numpy.finfo(real_type).max
                 for element in range(0, number_elements_in_node[node]):
-                    item = (elements_in_node[(node * max_elements_in_node) + element] * max_levels * 2) + (level * 2)
+                    item = ((elements_in_node[(node * max_elements_in_node) + element] - 1) * max_levels * 2) + (level * 2)
                     max_temp = max(max_temp, uv_rhs[item])
                     min_temp = min(min_temp, uv_rhs[item + 1])
                 tvert_max.append(max_temp)
@@ -173,7 +175,7 @@ def tune(elements, nodes, max_elements, max_levels, vlimit, max_tile, real_type)
         levels[node] = numpy.random.randint(3, max_levels)
         number_elements_in_node[node] = numpy.random.randint(3, max_elements)
         for element in range(0, number_elements_in_node[node]):
-            elements_in_node[(node * max_elements) + element] = numpy.random.randint(0, elements)
+            elements_in_node[(node * max_elements) + element] = numpy.random.randint(1, elements + 1)
     arguments = [numpy.int32(max_levels), numpy.int32(max_elements), levels, elements_in_node, number_elements_in_node, uv_rhs, fct_ttf_max, fct_ttf_min, fct_lo]
     # Reference
     reference(vlimit, nodes, levels, max_levels, elements_in_node, number_elements_in_node, max_elements, uv_rhs, fct_ttf_max_control, fct_ttf_min_control, fct_lo, numpy_real_type)
