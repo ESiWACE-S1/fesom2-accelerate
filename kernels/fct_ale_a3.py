@@ -4,13 +4,6 @@ import numpy
 import argparse
 
 def generate_code(tuning_parameters):
-    numpy_real_type = None
-    if tuning_parameters["real_type"] == "float":
-        numpy_real_type = numpy.float32
-    elif tuning_parameters["real_type"] == "double":
-        numpy_real_type = numpy.float64
-    else:
-        raise ValueError
     code = \
         "__global__ void fct_ale_a3(const int maxLevels, const int maxElements, const int * __restrict__ nLevels, const int * __restrict__ elements_in_node, const int * __restrict__ number_elements_in_node, const <%REAL_TYPE%><%VECTOR_SIZE%> * __restrict__ UV_rhs, <%REAL_TYPE%> * __restrict__ fct_ttf_max, <%REAL_TYPE%> * __restrict__ fct_ttf_min, const <%REAL_TYPE%> * __restrict__ fct_lo)\n" \
         "{\n" \
