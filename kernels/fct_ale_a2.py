@@ -7,44 +7,44 @@ def generate_code(tuning_parameters):
     code = \
         "__global__ void fct_ale_a2(const int maxLevels, const int * __restrict__ nLevels, const int * __restrict__ elementNodes, <%REAL_TYPE%><%VECTOR_SIZE%> * __restrict__ UV_rhs, const <%REAL_TYPE%> * __restrict__ fct_ttf_max, const <%REAL_TYPE%> * __restrict__ fct_ttf_min)\n" \
         "{\n" \
-        "const <%INT_TYPE%> element_index = (blockIdx.x * maxLevels * 2);\n" \
-        "const <%INT_TYPE%> element_node0_index = elementNodes[(blockIdx.x * 3)] * maxLevels;\n" \
-        "const <%INT_TYPE%> element_node1_index = elementNodes[(blockIdx.x * 3) + 1] * maxLevels;\n" \
-        "const <%INT_TYPE%> element_node2_index = elementNodes[(blockIdx.x * 3) + 2] * maxLevels;\n" \
+        "const <%INT_TYPE%> elementIndex = (blockIdx.x * maxLevels * 2);\n" \
+        "const <%INT_TYPE%> nodeOneIndex = (elementNodes[(blockIdx.x * 3)] - 1) * maxLevels;\n" \
+        "const <%INT_TYPE%> nodeTwoIndex = (elementNodes[(blockIdx.x * 3) + 1] - 1) * maxLevels;\n" \
+        "const <%INT_TYPE%> nodeThreeIndex = (elementNodes[(blockIdx.x * 3) + 2] - 1) * maxLevels;\n" \
         "for ( <%INT_TYPE%> level = threadIdx.x; level < maxLevels - 1; level += <%BLOCK_SIZE%> )\n" \
         "{\n" \
         "<%COMPUTE_BLOCK%>" \
         "}\n" \
         "}\n"
     compute_block = \
-        "if ( level + <%OFFSET%> < nLevels[blockIdx.x] )\n" \
+        "if ( level + <%OFFSET%> < nLevels[blockIdx.x] - 1 )\n" \
         "{\n" \
         "<%REAL_TYPE%> temp = 0.0;\n" \
-        "temp = <%FMAX%>(fct_ttf_max[element_node0_index + level + <%OFFSET%>], fct_ttf_max[element_node1_index + level + <%OFFSET%>]);\n" \
-        "temp = <%FMAX%>(temp, fct_ttf_max[element_node2_index + level + <%OFFSET%>]);\n" \
-        "UV_rhs[element_index + ((level + <%OFFSET%>) * 2)] = temp;\n" \
-        "temp = <%FMIN%>(fct_ttf_min[element_node0_index + level + <%OFFSET%>], fct_ttf_min[element_node1_index + level + <%OFFSET%>]);\n" \
-        "temp = <%FMIN%>(temp, fct_ttf_min[element_node2_index + level + <%OFFSET%>]);\n" \
-        "UV_rhs[element_index + ((level + <%OFFSET%>) * 2) + 1] = temp;\n" \
+        "temp = <%FMAX%>(fct_ttf_max[nodeOneIndex + level + <%OFFSET%>], fct_ttf_max[nodeTwoIndex + level + <%OFFSET%>]);\n" \
+        "temp = <%FMAX%>(temp, fct_ttf_max[nodeThreeIndex + level + <%OFFSET%>]);\n" \
+        "UV_rhs[elementIndex + ((level + <%OFFSET%>) * 2)] = temp;\n" \
+        "temp = <%FMIN%>(fct_ttf_min[nodeOneIndex + level + <%OFFSET%>], fct_ttf_min[nodeTwoIndex + level + <%OFFSET%>]);\n" \
+        "temp = <%FMIN%>(temp, fct_ttf_min[nodeThreeIndex + level + <%OFFSET%>]);\n" \
+        "UV_rhs[elementIndex + ((level + <%OFFSET%>) * 2) + 1] = temp;\n" \
         "}\n" \
         "else if ( level + <%OFFSET%> < maxLevels - 1 )\n" \
         "{\n" \
-        "UV_rhs[element_index + ((level + <%OFFSET%>) * 2)] = <%MIN%>;\n" \
-        "UV_rhs[element_index + ((level + <%OFFSET%>) * 2) + 1] = <%MAX%>;\n" \
+        "UV_rhs[elementIndex + ((level + <%OFFSET%>) * 2)] = <%MIN%>;\n" \
+        "UV_rhs[elementIndex + ((level + <%OFFSET%>) * 2) + 1] = <%MAX%>;\n" \
         "}\n"
     compute_block_vector = \
-        "if ( level + <%OFFSET%> < nLevels[blockIdx.x] )\n" \
+        "if ( level + <%OFFSET%> < nLevels[blockIdx.x] - 1 )\n" \
         "{\n" \
         "<%REAL_TYPE%><%VECTOR_SIZE%> temp = make_<%REAL_TYPE%>2(0.0, 0.0);\n" \
-        "temp.x = <%FMAX%>(fct_ttf_max[element_node0_index + level + <%OFFSET%>], fct_ttf_max[element_node1_index + level + <%OFFSET%>]);\n" \
-        "temp.x = <%FMAX%>(temp.x, fct_ttf_max[element_node2_index + level + <%OFFSET%>]);\n" \
-        "temp.y = <%FMIN%>(fct_ttf_min[element_node0_index + level + <%OFFSET%>], fct_ttf_min[element_node1_index + level + <%OFFSET%>]);\n" \
-        "temp.y = <%FMIN%>(temp.y, fct_ttf_min[element_node2_index + level + <%OFFSET%>]);\n" \
-        "UV_rhs[element_index + level + <%OFFSET%>] = temp;\n" \
+        "temp.x = <%FMAX%>(fct_ttf_max[nodeOneIndex + level + <%OFFSET%>], fct_ttf_max[nodeTwoIndex + level + <%OFFSET%>]);\n" \
+        "temp.x = <%FMAX%>(temp.x, fct_ttf_max[nodeThreeIndex + level + <%OFFSET%>]);\n" \
+        "temp.y = <%FMIN%>(fct_ttf_min[nodeOneIndex + level + <%OFFSET%>], fct_ttf_min[nodeTwoIndex + level + <%OFFSET%>]);\n" \
+        "temp.y = <%FMIN%>(temp.y, fct_ttf_min[nodeThreeIndex + level + <%OFFSET%>]);\n" \
+        "UV_rhs[elementIndex + level + <%OFFSET%>] = temp;\n" \
         "}\n" \
         "else if ( level + <%OFFSET%> < maxLevels - 1 )\n" \
         "{\n" \
-        "UV_rhs[element_index + level + <%OFFSET%>] = make_<%REAL_TYPE%>2(<%MIN%>, <%MAX%>);\n" \
+        "UV_rhs[elementIndex + level + <%OFFSET%>] = make_<%REAL_TYPE%>2(<%MIN%>, <%MAX%>);\n" \
         "}\n"
     if tuning_parameters["tiling_x"] > 1:
         code = code.replace("<%BLOCK_SIZE%>", str(tuning_parameters["block_size_x"] * tuning_parameters["tiling_x"]))
@@ -90,10 +90,10 @@ def generate_code(tuning_parameters):
 
 def reference(elements, levels, max_levels, nodes, UV_rhs, fct_ttf_max, fct_ttf_min, real_type):
     for element in range(0, elements):
-        for level in range(0, levels[element]):
+        for level in range(0, levels[element] - 1):
             item = (element * max_levels * 2) + (level * 2)
-            UV_rhs[item] = max(fct_ttf_max[(nodes[element * 3] * max_levels) + level], fct_ttf_max[(nodes[(element * 3) + 1] * max_levels) + level], fct_ttf_max[(nodes[(element * 3) + 2] * max_levels) + level])
-            UV_rhs[item + 1] = min(fct_ttf_min[(nodes[element * 3] * max_levels) + level], fct_ttf_min[(nodes[(element * 3) + 1] * max_levels) + level], fct_ttf_min[(nodes[(element * 3) + 2] * max_levels) + level])
+            UV_rhs[item] = max(fct_ttf_max[((nodes[element * 3] - 1) * max_levels) + level], fct_ttf_max[((nodes[(element * 3) + 1] - 1) * max_levels) + level], fct_ttf_max[((nodes[(element * 3) + 2] - 1) * max_levels) + level])
+            UV_rhs[item + 1] = min(fct_ttf_min[((nodes[element * 3] - 1) * max_levels) + level], fct_ttf_min[((nodes[(element * 3) + 1] - 1) * max_levels) + level], fct_ttf_min[((nodes[(element * 3) + 2] - 1) * max_levels) + level])
         if levels[element] <= max_levels - 1:
             for level in range(levels[element], max_levels - 1):
                 item = (element * max_levels * 2) + (level * 2)
@@ -133,9 +133,9 @@ def tune(elements, nodes, max_levels, max_tile, real_type):
     element_nodes = numpy.zeros(elements * 3).astype(numpy.int32)
     for element in range(0, elements):
         levels[element] = numpy.random.randint(3, max_levels)
-        element_nodes[(element * 3)] = numpy.random.randint(0, nodes)
-        element_nodes[(element * 3) + 1] = numpy.random.randint(0, nodes)
-        element_nodes[(element * 3) + 2] = numpy.random.randint(0, nodes)
+        element_nodes[(element * 3)] = numpy.random.randint(1, nodes + 1)
+        element_nodes[(element * 3) + 1] = numpy.random.randint(1, nodes + 1)
+        element_nodes[(element * 3) + 2] = numpy.random.randint(1, nodes + 1)
     arguments = [numpy.int32(max_levels), levels, element_nodes, uv_rhs, fct_ttf_max, fct_ttf_min]
     # Reference
     reference(elements, levels, max_levels, element_nodes, uv_rhs_control, fct_ttf_max, fct_ttf_min, real_type)
