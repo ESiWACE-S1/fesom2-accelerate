@@ -11,7 +11,7 @@ def generate_code(tuning_parameters):
         "<%REAL_TYPE%> fct_low_order_item = 0;\n" \
         "<%REAL_TYPE%> ttf_item = 0;\n" \
         "\n" \
-        "for ( <%INT_TYPE%> level = threadIdx.x; level < nLevels[blockIdx.x]; level += <%BLOCK_SIZE%> )\n" \
+        "for ( <%INT_TYPE%> level = threadIdx.x; level < nLevels[blockIdx.x] - 1; level += <%BLOCK_SIZE%> )\n" \
         "{\n" \
         "<%COMPUTE_BLOCK%>" \
         "}\n" \
@@ -31,7 +31,7 @@ def generate_code(tuning_parameters):
             compute = compute + compute_block.replace(" + <%OFFSET%>", "")
         else:
             offset = tuning_parameters["block_size_x"] * tile
-            compute = compute + "if (level + {} < nLevels[blockIdx.x])\n{{\n{}}}\n".format(str(offset), compute_block.replace("<%OFFSET%>", str(offset)))
+            compute = compute + "if (level + {} < nLevels[blockIdx.x] - 1)\n{{\n{}}}\n".format(str(offset), compute_block.replace("<%OFFSET%>", str(offset)))
     code = code.replace("<%COMPUTE_BLOCK%>", compute)
     if tuning_parameters["real_type"] == "float":
         code = code.replace("<%FMAX%>", "fmaxf")
@@ -47,7 +47,7 @@ def generate_code(tuning_parameters):
 
 def reference(nodes, levels, max_levels, fct_low_order, ttf, fct_ttf_max, fct_ttf_min):
     for node in range(0, nodes):
-        for level in range(0, levels[node]):
+        for level in range(0, levels[node] - 1):
             item = (node * max_levels) + level
             fct_ttf_max[item] = max(fct_low_order[item], ttf[item])
             fct_ttf_min[item] = min(fct_low_order[item], ttf[item])
