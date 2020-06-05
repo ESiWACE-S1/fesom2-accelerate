@@ -121,23 +121,11 @@ void alloc_var_(void** ret, real_type* host_ptr, int* size, int* istat)
     *ret = (void*)gpumem;
 }
 
-void alloc_var_pinned_(void** ret, void** host_ptr, int* size, int* istat)
-{
-    // TODO: Check errors
-    cudaMallocHost(host_ptr, (*size) * sizeof(real_type));
-    alloc_var_(ret, (real_type*)(*host_ptr), (*size) * sizeof(real_type), istat);
-}
-
-void transfer_var_async_(void** mem, real_type* host_ptr, int* istat)
+void transfer_var_async_(void** mem, real_type* host_ptr)
 {
     struct gpuMemory* mem_gpu = static_cast<gpuMemory*>(*mem);
     mem_gpu->host_pointer = (void*)host_ptr;
-    int status = transferToDevice(*mem_gpu, false);
-    if ( !status )
-    {
-        std::cerr<<"Error in transfer of ttf to device"<<std::endl;
-        *istat = 1;
-    }
+    transferToDevice(*mem_gpu, false);
 }
 
 void reserve_var_(void** ret, int* size, int* istat)
