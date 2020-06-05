@@ -20,6 +20,11 @@ def generate_code(tuning_parameters):
         "<%REAL_TYPE%> tvert_min_temp = 0.0;\n" \
         "<%REDUCTION%>" \
         "}\n" \
+        "if ( threadIdx.x == 0 )\n" \
+        "{\n" \
+        "tvert_max[maxNodeLevel - 1] = 0;\n" \
+        "tvert_min[maxNodeLevel - 1] = 0;\n" \
+        "}\n" \
         "__syncthreads();\n" \
         "/* Update fct_ttf_max and fct_ttf_min per level */\n" \
         "item = blockIdx.x * maxLevels;\n" \
@@ -120,6 +125,8 @@ def reference(vlimit, nodes, levels, max_levels, elements_in_node, number_elemen
                     min_temp = min(min_temp, uv_rhs[item + 1])
                 tvert_max.append(max_temp)
                 tvert_min.append(min_temp)
+            tvert_max.append(0)
+            tvert_min.append(0)
             # Surface level
             fct_ttf_max[(node * max_levels)] = tvert_max[0] - fct_lo[(node * max_levels)]
             fct_ttf_min[(node * max_levels)] = tvert_min[0] - fct_lo[(node * max_levels)]
