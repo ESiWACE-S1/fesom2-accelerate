@@ -8,11 +8,11 @@ def generate_code(tuning_parameters):
         "__global__ void fct_ale_a1(const int maxLevels, const <%REAL_TYPE%> * __restrict__ fct_low_order, const <%REAL_TYPE%> * __restrict__ ttf, const int * __restrict__ nLevels, <%REAL_TYPE%> * __restrict__ fct_ttf_max, <%REAL_TYPE%> * __restrict__ fct_ttf_min)\n" \
         "{\n" \
         "const <%INT_TYPE%> node = (blockIdx.x * maxLevels);\n" \
+        "<%REAL_TYPE%> fct_low_order_item = 0;\n" \
+        "<%REAL_TYPE%> ttf_item = 0;\n" \
         "\n" \
         "for ( <%INT_TYPE%> level = threadIdx.x; level < nLevels[blockIdx.x]; level += <%BLOCK_SIZE%> )\n" \
         "{\n" \
-        "<%REAL_TYPE%> fct_low_order_item = 0;\n" \
-        "<%REAL_TYPE%> ttf_item = 0;\n" \
         "<%COMPUTE_BLOCK%>" \
         "}\n" \
         "}\n"
