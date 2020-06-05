@@ -27,6 +27,10 @@ def generate_code(tuning_parameters):
         "temp = <%FMIN%>(temp, fct_ttf_min[nodeThreeIndex + level + <%OFFSET%>]);\n" \
         "UV_rhs[elementIndex + ((level + <%OFFSET%>) * 2) + 1] = temp;\n" \
         "}\n" \
+        "else if ( level + <%OFFSET%> == nLevels[blockIdx.x] - 1 )\n" \
+        "{\n" \
+        "continue;\n" \
+        "}\n" \
         "else if ( level + <%OFFSET%> < maxLevels - 1 )\n" \
         "{\n" \
         "UV_rhs[elementIndex + ((level + <%OFFSET%>) * 2)] = <%MIN%>;\n" \
@@ -41,6 +45,10 @@ def generate_code(tuning_parameters):
         "temp.y = <%FMIN%>(fct_ttf_min[nodeOneIndex + level + <%OFFSET%>], fct_ttf_min[nodeTwoIndex + level + <%OFFSET%>]);\n" \
         "temp.y = <%FMIN%>(temp.y, fct_ttf_min[nodeThreeIndex + level + <%OFFSET%>]);\n" \
         "UV_rhs[elementIndex + level + <%OFFSET%>] = temp;\n" \
+        "}\n" \
+        "else if ( level + <%OFFSET%> == nLevels[blockIdx.x] - 1 )\n" \
+        "{\n" \
+        "continue;\n" \
         "}\n" \
         "else if ( level + <%OFFSET%> < maxLevels - 1 )\n" \
         "{\n" \
