@@ -8,21 +8,21 @@ def generate_code(tuning_parameters):
         "__global__ void fct_ale_b1_horizontal(const int maxLevels, const int * __restrict__ nLevels, const int * __restrict__ nodesPerEdge, const int * __restrict__ elementsPerEdge, const <%REAL_TYPE%> * __restrict__ fct_adf_h, <%REAL_TYPE%> * __restrict__ fct_plus, <%REAL_TYPE%> * __restrict__ fct_minus)\n" \
         "{\n" \
         "<%INT_TYPE%> levelBound = 0;\n" \
-        "const <%INT_TYPE%> nodeOne = nodesPerEdge[(blockIdx.x * 2)] * maxLevels;\n" \
-        "const <%INT_TYPE%> nodeTwo = nodesPerEdge[(blockIdx.x * 2) + 1] * maxLevels;\n" \
+        "const <%INT_TYPE%> nodeOne = (nodesPerEdge[(blockIdx.x * 2)] - 1) * maxLevels;\n" \
+        "const <%INT_TYPE%> nodeTwo = (nodesPerEdge[(blockIdx.x * 2) + 1] - 1) * maxLevels;\n" \
         "\n" \
         "/* Compute the upper bound for the level */\n" \
         "levelBound = elementsPerEdge[(blockIdx.x * 2) + 1];\n" \
         "if ( levelBound > 0 )\n" \
         "{\n" \
-        "levelBound = max(nLevels[elementsPerEdge[(blockIdx.x * 2)]], nLevels[levelBound]);\n" \
+        "levelBound = max(nLevels[(elementsPerEdge[(blockIdx.x * 2)]) - 1], nLevels[levelBound - 1]);\n" \
         "}\n" \
         "else\n" \
         "{\n" \
-        "levelBound = max(nLevels[elementsPerEdge[(blockIdx.x * 2)]], 0);\n" \
+        "levelBound = max(nLevels[(elementsPerEdge[(blockIdx.x * 2)]) - 1], 0);\n" \
         "}\n" \
         "/* Compute fct_plus and fct_minus */\n" \
-        "for ( <%INT_TYPE%> level = threadIdx.x; level < levelBound; level += <%BLOCK_SIZE%> )\n" \
+        "for ( <%INT_TYPE%> level = threadIdx.x; level < levelBound - 1; level += <%BLOCK_SIZE%> )\n" \
         "{\n" \
         "<%REAL_TYPE%> fct_adf_h_value = 0.0;\n" \
         "<%COMPUTE_BLOCK%>" \
@@ -44,7 +44,7 @@ def generate_code(tuning_parameters):
             compute = compute + compute_block.replace(" + <%OFFSET%>", "")
         else:
             offset = tuning_parameters["block_size_x"] * tile
-            compute = compute + "if (level + {} < levelBound)\n{{\n{}}}\n".format(str(offset), compute_block.replace("<%OFFSET%>", str(offset)))
+            compute = compute + "if ( level + {} < levelBound - 1 )\n{{\n{}}}\n".format(str(offset), compute_block.replace("<%OFFSET%>", str(offset)))
     code = code.replace("<%COMPUTE_BLOCK%>", compute)
     if tuning_parameters["real_type"] == "float":
         code = code.replace("<%FMAX%>", "fmaxf")
@@ -60,15 +60,15 @@ def generate_code(tuning_parameters):
 
 def reference(edges, nodes_per_edge, elements_per_edge, levels, max_levels, fct_adf_h, fct_plus, fct_minus):
     for edge in range(0, edges):
-        node_one = nodes_per_edge[edge * 2]
-        node_two = nodes_per_edge[(edge * 2) + 1]
-        element_one = elements_per_edge[edge * 2]
-        element_two = elements_per_edge[(edge * 2) + 1]
-        if element_two <= 0:
+        node_one = nodes_per_edge[edge * 2] - 1
+        node_two = nodes_per_edge[(edge * 2) + 1] - 1
+        element_one = elements_per_edge[edge * 2] - 1
+        element_two = elements_per_edge[(edge * 2) + 1] - 1
+        if element_two < 0:
             number_levels = max(levels[element_one], 0)
         else:
             number_levels = max(levels[element_one], levels[element_two])
-        for level in range(0, number_levels):
+        for level in range(0, number_levels - 1):
             fct_plus[(node_one * max_levels) + level] = fct_plus[(node_one * max_levels) + level] + max(0.0, fct_adf_h[(edge * max_levels) + level])
             fct_minus[(node_one * max_levels) + level] = fct_minus[(node_one * max_levels) + level] + min(0.0, fct_adf_h[(edge * max_levels) + level])
             fct_plus[(node_two * max_levels) + level] = fct_plus[(node_two * max_levels) + level] + max(0.0, -fct_adf_h[(edge * max_levels) + level])
@@ -103,10 +103,10 @@ def tune(nodes, edges, elements, max_levels, max_tile, real_type):
     nodes_per_edge = numpy.zeros(edges * 2).astype(numpy.int32)
     elements_per_edge = numpy.zeros(edges * 2).astype(numpy.int32)
     for edge in range(0, edges):
-        nodes_per_edge[edge * 2] = numpy.random.randint(0, nodes)
-        nodes_per_edge[(edge * 2) + 1] = numpy.random.randint(0, nodes)
-        elements_per_edge[edge * 2] = numpy.random.randint(1, elements)
-        elements_per_edge[(edge * 2) + 1] = numpy.random.randint(0, elements)
+        nodes_per_edge[edge * 2] = numpy.random.randint(1, nodes + 1)
+        nodes_per_edge[(edge * 2) + 1] = numpy.random.randint(1, nodes + 1)
+        elements_per_edge[edge * 2] = numpy.random.randint(1, elements + 1)
+        elements_per_edge[(edge * 2) + 1] = numpy.random.randint(0, elements + 1)
     arguments = [numpy.int32(max_levels), levels, nodes_per_edge, elements_per_edge, fct_adf_h, fct_plus, fct_minus]
     # Reference
     reference(edges, nodes_per_edge, elements_per_edge, levels, max_levels, fct_adf_h, fct_plus_control, fct_minus_control)
