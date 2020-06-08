@@ -7,9 +7,11 @@ def generate_code(tuning_parameters):
     code = \
         "__global__ void fct_ale_b2(const int maxLevels, const <%REAL_TYPE%> dt, const <%REAL_TYPE%> fluxEpsilon, const int * __restrict__ nLevels, const <%REAL_TYPE%> * __restrict__ area, const <%REAL_TYPE%> * __restrict__ fct_ttf_max, const <%REAL_TYPE%> * __restrict__ fct_ttf_min, <%REAL_TYPE%> * __restrict__ fct_plus, <%REAL_TYPE%> * __restrict__ fct_minus)\n" \
         "{\n" \
+        "const <%INT_TYPE%> maxNodeLevel = nLevels[blockIdx.x] - 1;\n" \
         "<%INT_TYPE%> index = 0;\n" \
         "<%REAL_TYPE%> area_item = 0;\n" \
-        "for ( <%INT_TYPE%> level = threadIdx.x; level < nLevels[blockIdx.x] - 1; level += <%BLOCK_SIZE%> )\n" \
+        "\n" \
+        "for ( <%INT_TYPE%> level = threadIdx.x; level < maxNodeLevel; level += <%BLOCK_SIZE%> )\n" \
         "{\n" \
         "<%COMPUTE_BLOCK%>" \
         "}\n" \
@@ -29,7 +31,7 @@ def generate_code(tuning_parameters):
             compute = compute + compute_block.replace(" + <%OFFSET%>", "")
         else:
             offset = tuning_parameters["block_size_x"] * tile
-            compute = compute + "if ( level + {} < nLevels[blockIdx.x] - 1 )\n{{\n{}}}\n".format(str(offset), compute_block.replace("<%OFFSET%>", str(offset)))
+            compute = compute + "if ( level + {} < maxNodeLevel )\n{{\n{}}}\n".format(str(offset), compute_block.replace("<%OFFSET%>", str(offset)))
     code = code.replace("<%COMPUTE_BLOCK%>", compute)
     if tuning_parameters["real_type"] == "float":
         code = code.replace("<%FMAX%>", "fmaxf")
