@@ -9,7 +9,7 @@ def generate_code(tuning_parameters):
         "{\n" \
         "<%INT_TYPE%> index = 0;\n" \
         "<%REAL_TYPE%> area_item = 0;\n" \
-        "for ( <%INT_TYPE%> level = threadIdx.x; level < nLevels[blockIdx.x]; level += <%BLOCK_SIZE%> )\n" \
+        "for ( <%INT_TYPE%> level = threadIdx.x; level < nLevels[blockIdx.x] - 1; level += <%BLOCK_SIZE%> )\n" \
         "{\n" \
         "<%COMPUTE_BLOCK%>" \
         "}\n" \
@@ -45,7 +45,7 @@ def generate_code(tuning_parameters):
 
 def reference(nodes, dt, flux_epsilon, levels, max_levels, area, fct_ttf_max, fct_ttf_min, fct_plus, fct_minus):
     for node in range(0, nodes):
-        for level in range(0, levels[node]):
+        for level in range(0, levels[node] - 1):
             index = (node * max_levels) + level
             temp = fct_ttf_max[index] / (((fct_plus[index] * dt) / area[index]) + flux_epsilon)
             fct_plus[index] = min(1.0, temp)
