@@ -89,8 +89,9 @@ def tune(nodes, max_levels, max_tile, real_type):
     # Tuning
     results, environment = tune_kernel("fct_ale_a1", generate_code, "{} * block_size_x".format(nodes), arguments, tuning_parameters, lang="CUDA", answer=arguments_control, restrictions=constraints, quiet=True)
     # Memory bandwidth
+    memory_bytes = ((nodes * 4) + (nodes * used_levels * 4 * numpy.dtype(numpy_real_type).itemsize))
     for result in results:
-        result["memory_bandwidth"] = ((nodes * 4) + (nodes * used_levels * 4 * numpy.dtype(numpy_real_type).itemsize)) / result["time"]
+        result["memory_bandwidth"] = memory_bytes / (result["time"] / 10**3)
     return results
 
 def parse_command_line():
@@ -105,5 +106,6 @@ if __name__ == "__main__":
     command_line = parse_command_line()
     results = tune(command_line.nodes, command_line.max_levels, command_line.max_tile, command_line.real_type)
     best_configuration = min(results, key=lambda x : x["time"])
+    print("/* Memory bandwidth: {:.2f} */".format(best_configuration["memory_bandwidth"] / 10**9))
     print("/* Block size X: {} */".format(best_configuration["block_size_x"]))
     print(generate_code(best_configuration))
