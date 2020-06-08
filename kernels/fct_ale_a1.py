@@ -78,14 +78,19 @@ def tune(nodes, max_levels, max_tile, real_type):
     fct_ttf_max_control = numpy.zeros_like(fct_ttf_max).astype(numpy_real_type)
     fct_ttf_min_control = numpy.zeros_like(fct_ttf_min).astype(numpy_real_type)
     levels = numpy.zeros(nodes).astype(numpy.int32)
+    used_levels = 0
     for node in range(0, nodes):
         levels[node] = numpy.random.randint(3, max_levels)
+        used_levels = used_levels + (levels[node] - 1)
     arguments = [numpy.int32(max_levels), fct_low_order, ttf, levels, fct_ttf_max, fct_ttf_min]
     # Reference
     reference(nodes, levels, max_levels, fct_low_order, ttf, fct_ttf_max_control, fct_ttf_min_control)
     arguments_control = [None, None, None, None, fct_ttf_max_control, fct_ttf_min_control]
     # Tuning
     results, environment = tune_kernel("fct_ale_a1", generate_code, "{} * block_size_x".format(nodes), arguments, tuning_parameters, lang="CUDA", answer=arguments_control, restrictions=constraints, quiet=True)
+    # Memory bandwidth
+    for result in results:
+        result["memory_bandwidth"] = ((nodes * 4) + (nodes * used_levels * 4 * numpy.dtype(numpy_real_type).itemsize)) / result["time"]
     return results
 
 def parse_command_line():
