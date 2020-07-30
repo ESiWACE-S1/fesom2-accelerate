@@ -89,7 +89,7 @@ def tune(nodes, max_levels, max_tile, real_type, quiet=True):
     # Tuning
     results, environment = tune_kernel("fct_ale_a1", generate_code, "{} * block_size_x".format(nodes), arguments, tuning_parameters, lang="CUDA", answer=arguments_control, restrictions=constraints, quiet=quiet)
     # Memory bandwidth
-    memory_bytes = ((nodes * 4) + (nodes * used_levels * 4 * numpy.dtype(numpy_real_type).itemsize))
+    memory_bytes = ((nodes * 4) + (used_levels * 4 * numpy.dtype(numpy_real_type).itemsize))
     for result in results:
         result["memory_bandwidth"] = memory_bytes / (result["time"] / 10**3)
     return results
