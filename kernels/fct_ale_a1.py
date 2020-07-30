@@ -100,7 +100,7 @@ def parse_command_line():
     parser.add_argument("--max_levels", help="The maximum number of vertical levels per node.", type=int, required=True)
     parser.add_argument("--max_tile", help="The maximum tiling factor.", type=int, default=2)
     parser.add_argument("--real_type", help="The floating point type to use.", choices=["float", "double"], type=str, required=True)
-    parser.add_argument("--verbose", help="Print all kernel configurations.", type=bool, default=True, action="store_false")
+    parser.add_argument("--verbose", help="Print all kernel configurations.", default=True, action="store_false")
     return parser.parse_args()
 
 if __name__ == "__main__":
