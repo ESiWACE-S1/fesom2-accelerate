@@ -91,22 +91,27 @@ def generate_code(tuning_parameters):
     return code
 
 def reference(elements, levels, max_levels, nodes, UV_rhs, fct_ttf_max, fct_ttf_min, real_type):
+    numpy_real_type = None
+    if real_type == "float":
+        numpy_real_type = numpy.float32
+    elif real_type == "double":
+        numpy_real_type = numpy.float64
+    else:
+        raise ValueError
+    memory_bytes = elements * 16
     for element in range(0, elements):
         for level in range(0, levels[element] - 1):
+            memory_bytes = memory_bytes + (8 * numpy.dtype(numpy_real_type).itemsize)
             item = (element * max_levels * 2) + (level * 2)
             UV_rhs[item] = max(fct_ttf_max[((nodes[element * 3] - 1) * max_levels) + level], fct_ttf_max[((nodes[(element * 3) + 1] - 1) * max_levels) + level], fct_ttf_max[((nodes[(element * 3) + 2] - 1) * max_levels) + level])
             UV_rhs[item + 1] = min(fct_ttf_min[((nodes[element * 3] - 1) * max_levels) + level], fct_ttf_min[((nodes[(element * 3) + 1] - 1) * max_levels) + level], fct_ttf_min[((nodes[(element * 3) + 2] - 1) * max_levels) + level])
         if levels[element] <= max_levels - 1:
             for level in range(levels[element], max_levels - 1):
+                memory_bytes = memory_bytes + (2 * numpy.dtype(numpy_real_type).itemsize)
                 item = (element * max_levels * 2) + (level * 2)
-                if real_type == "float":
-                    UV_rhs[item] = numpy.finfo(numpy.float32).min
-                    UV_rhs[item + 1] = numpy.finfo(numpy.float32).max
-                elif real_type == "double":
-                    UV_rhs[item] = numpy.finfo(numpy.float64).min
-                    UV_rhs[item + 1] = numpy.finfo(numpy.float64).max
-                else:
-                    raise ValueError
+                UV_rhs[item] = numpy.finfo(numpy_real_type).min
+                UV_rhs[item + 1] = numpy.finfo(numpy_real_type).max
+    return memory_bytes
 
 def tune(elements, nodes, max_levels, max_tile, real_type, quiet=True):
     numpy_real_type = None
@@ -140,10 +145,13 @@ def tune(elements, nodes, max_levels, max_tile, real_type, quiet=True):
         element_nodes[(element * 3) + 2] = numpy.random.randint(1, nodes + 1)
     arguments = [numpy.int32(max_levels), levels, element_nodes, uv_rhs, fct_ttf_max, fct_ttf_min]
     # Reference
-    reference(elements, levels, max_levels, element_nodes, uv_rhs_control, fct_ttf_max, fct_ttf_min, real_type)
+    memory_bytes = reference(elements, levels, max_levels, element_nodes, uv_rhs_control, fct_ttf_max, fct_ttf_min, real_type)
     arguments_control = [None, None, None, uv_rhs_control, None, None]
     # Tuning
     results, environment = tune_kernel("fct_ale_a2", generate_code, "{} * block_size_x".format(elements), arguments, tuning_parameters, lang="CUDA", answer=arguments_control, restrictions=constraints, quiet=quiet)
+    # Memory bandwidth
+    for result in results:
+        result["memory_bandwidth"] = memory_bytes / (result["time"] / 10**3)
     return results
 
 def parse_command_line():
@@ -160,5 +168,6 @@ if __name__ == "__main__":
     command_line = parse_command_line()
     results = tune(command_line.elements, command_line.nodes, command_line.max_levels, command_line.max_tile, command_line.real_type, command_line.verbose)
     best_configuration = min(results, key=lambda x : x["time"])
+    print("/* Memory bandwidth: {:.2f} GB/s */".format(best_configuration["memory_bandwidth"] / 10**9))
     print("/* Block size X: {} */".format(best_configuration["block_size_x"]))
     print(generate_code(best_configuration))
