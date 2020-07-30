@@ -53,7 +53,7 @@ def reference(nodes, levels, max_levels, fct_low_order, ttf, fct_ttf_max, fct_tt
             fct_ttf_max[item] = max(fct_low_order[item], ttf[item])
             fct_ttf_min[item] = min(fct_low_order[item], ttf[item])
 
-def tune(nodes, max_levels, max_tile, real_type):
+def tune(nodes, max_levels, max_tile, real_type, quiet=True):
     numpy_real_type = None
     if real_type == "float":
         numpy_real_type = numpy.float32
@@ -87,7 +87,7 @@ def tune(nodes, max_levels, max_tile, real_type):
     reference(nodes, levels, max_levels, fct_low_order, ttf, fct_ttf_max_control, fct_ttf_min_control)
     arguments_control = [None, None, None, None, fct_ttf_max_control, fct_ttf_min_control]
     # Tuning
-    results, environment = tune_kernel("fct_ale_a1", generate_code, "{} * block_size_x".format(nodes), arguments, tuning_parameters, lang="CUDA", answer=arguments_control, restrictions=constraints, quiet=True)
+    results, environment = tune_kernel("fct_ale_a1", generate_code, "{} * block_size_x".format(nodes), arguments, tuning_parameters, lang="CUDA", answer=arguments_control, restrictions=constraints, quiet=quiet)
     # Memory bandwidth
     memory_bytes = ((nodes * 4) + (nodes * used_levels * 4 * numpy.dtype(numpy_real_type).itemsize))
     for result in results:
@@ -100,11 +100,12 @@ def parse_command_line():
     parser.add_argument("--max_levels", help="The maximum number of vertical levels per node.", type=int, required=True)
     parser.add_argument("--max_tile", help="The maximum tiling factor.", type=int, default=2)
     parser.add_argument("--real_type", help="The floating point type to use.", choices=["float", "double"], type=str, required=True)
+    parser.add_argument("--verbose", help="Print all kernel configurations.", type=bool, default=True, action="store_false")
     return parser.parse_args()
 
 if __name__ == "__main__":
     command_line = parse_command_line()
-    results = tune(command_line.nodes, command_line.max_levels, command_line.max_tile, command_line.real_type)
+    results = tune(command_line.nodes, command_line.max_levels, command_line.max_tile, command_line.real_type, command_line.verbose)
     best_configuration = min(results, key=lambda x : x["time"])
     print("/* Memory bandwidth: {:.2f} GB/s */".format(best_configuration["memory_bandwidth"] / 10**9))
     print("/* Block size X: {} */".format(best_configuration["block_size_x"]))
