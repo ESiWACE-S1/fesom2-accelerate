@@ -112,14 +112,18 @@ def generate_code(tuning_parameters):
     return code
 
 def reference(vlimit, nodes, levels, max_levels, elements_in_node, number_elements_in_node, max_elements_in_node, uv_rhs, fct_ttf_max, fct_ttf_min, fct_lo, real_type):
+    memory_bytes = 0
     if vlimit == 1:
         for node in range(0, nodes):
+            memory_bytes = memory_bytes + 4
             tvert_max = list()
             tvert_min = list()
             for level in range(0, levels[node] - 1):
+                memory_bytes = memory_bytes + ((4) + (2 * numpy.dtype(real_type).itemsize))
                 max_temp = numpy.finfo(real_type).min
                 min_temp = numpy.finfo(real_type).max
                 for element in range(0, number_elements_in_node[node]):
+                    memory_bytes = memory_bytes + ((4) + (2 * numpy.dtype(real_type).itemsize))
                     item = ((elements_in_node[(node * max_elements_in_node) + element] - 1) * max_levels * 2) + (level * 2)
                     max_temp = max(max_temp, uv_rhs[item])
                     min_temp = min(min_temp, uv_rhs[item + 1])
@@ -128,10 +132,12 @@ def reference(vlimit, nodes, levels, max_levels, elements_in_node, number_elemen
             tvert_max.append(0)
             tvert_min.append(0)
             # Surface level
+            memory_bytes = memory_bytes + (4 * numpy.dtype(real_type).itemsize)
             fct_ttf_max[(node * max_levels)] = tvert_max[0] - fct_lo[(node * max_levels)]
             fct_ttf_min[(node * max_levels)] = tvert_min[0] - fct_lo[(node * max_levels)]
             # Intermediate levels
             for level in range(1, levels[node] - 2):
+                memory_bytes = memory_bytes + (4 * numpy.dtype(real_type).itemsize)
                 temp = max(tvert_max[level - 1], tvert_max[level])
                 temp = max(temp, tvert_max[level + 1])
                 fct_ttf_max[(node * max_levels) + level] = temp - fct_lo[(node * max_levels) + level]
@@ -139,6 +145,7 @@ def reference(vlimit, nodes, levels, max_levels, elements_in_node, number_elemen
                 temp = min(temp, tvert_min[level + 1])
                 fct_ttf_min[(node * max_levels) + level] = temp - fct_lo[(node * max_levels) + level]
             # Bottom level
+            memory_bytes = memory_bytes + (4 * numpy.dtype(real_type).itemsize)
             fct_ttf_max[(node * max_levels) + levels[node] - 1] = tvert_max[levels[node] - 1] - fct_lo[(node * max_levels) + levels[node] - 1]
             fct_ttf_min[(node * max_levels) + levels[node] - 1] = tvert_min[levels[node] - 1] - fct_lo[(node * max_levels) + levels[node] - 1]
     elif vlimit == 2:
@@ -147,6 +154,7 @@ def reference(vlimit, nodes, levels, max_levels, elements_in_node, number_elemen
         pass
     else:
         raise ValueError
+    return memory_bytes
 
 def tune(elements, nodes, max_elements, max_levels, vlimit, max_tile, real_type, quiet=True):
     numpy_real_type = None
@@ -185,10 +193,13 @@ def tune(elements, nodes, max_elements, max_levels, vlimit, max_tile, real_type,
             elements_in_node[(node * max_elements) + element] = numpy.random.randint(1, elements + 1)
     arguments = [numpy.int32(max_levels), numpy.int32(max_elements), levels, elements_in_node, number_elements_in_node, uv_rhs, fct_ttf_max, fct_ttf_min, fct_lo]
     # Reference
-    reference(vlimit, nodes, levels, max_levels, elements_in_node, number_elements_in_node, max_elements, uv_rhs, fct_ttf_max_control, fct_ttf_min_control, fct_lo, numpy_real_type)
+    memory_bytes = reference(vlimit, nodes, levels, max_levels, elements_in_node, number_elements_in_node, max_elements, uv_rhs, fct_ttf_max_control, fct_ttf_min_control, fct_lo, numpy_real_type)
     arguments_control = [None, None, None, None, None, None, fct_ttf_max_control, fct_ttf_min_control, None]
     # Tuning
     results, environment = tune_kernel("fct_ale_a3", generate_code, "{} * block_size_x".format(nodes), arguments, tuning_parameters, smem_args=shared_memory_args, lang="CUDA", answer=arguments_control, restrictions=constraints, quiet=quiet)
+    # Memory bandwidth
+    for result in results:
+        result["memory_bandwidth"] = memory_bytes / (result["time"] / 10**3)
     return results
 
 def parse_command_line():
@@ -207,5 +218,6 @@ if __name__ == "__main__":
     command_line = parse_command_line()
     results = tune(command_line.elements, command_line.nodes, command_line.max_elements, command_line.max_levels, command_line.vlimit, command_line.max_tile, command_line.real_type, command_line.verbose)
     best_configuration = min(results, key=lambda x : x["time"])
+    print("/* Memory bandwidth: {:.2f} GB/s */".format(best_configuration["memory_bandwidth"] / 10**9))
     print("/* Block size X: {} */".format(best_configuration["block_size_x"]))
     print(generate_code(best_configuration))
