@@ -54,7 +54,7 @@ def reference(nodes, dt, flux_epsilon, levels, max_levels, area, fct_ttf_max, fc
             temp = fct_ttf_min[index] / (((fct_minus[index] * dt) / area[index]) - flux_epsilon)
             fct_minus[index] = min(1.0, temp)
 
-def tune(nodes, max_levels, max_tile, real_type):
+def tune(nodes, max_levels, max_tile, real_type, quiet=True):
     numpy_real_type = None
     if real_type == "float":
         numpy_real_type = numpy.float32
@@ -94,7 +94,7 @@ def tune(nodes, max_levels, max_tile, real_type):
     reference(nodes, dt, flux_epsilon, levels, max_levels, area, fct_ttf_max, fct_ttf_min, fct_plus_control, fct_minus_control)
     arguments_control = [None, None, None, None, None, None, None, fct_plus_control, fct_minus_control]
     # Tuning
-    results, environment = tune_kernel("fct_ale_b2", generate_code, "{} * block_size_x".format(nodes), arguments, tuning_parameters, lang="CUDA", answer=arguments_control, restrictions=constraints, quiet=True)
+    results, environment = tune_kernel("fct_ale_b2", generate_code, "{} * block_size_x".format(nodes), arguments, tuning_parameters, lang="CUDA", answer=arguments_control, restrictions=constraints, quiet=quiet)
     return results
 
 def parse_command_line():
@@ -103,11 +103,12 @@ def parse_command_line():
     parser.add_argument("--max_levels", help="The maximum number of vertical levels per node.", type=int, required=True)
     parser.add_argument("--max_tile", help="The maximum tiling factor.", type=int, default=2)
     parser.add_argument("--real_type", help="The floating point type to use.", choices=["float", "double"], type=str, required=True)
+    parser.add_argument("--verbose", help="Print all kernel configurations.", default=True, action="store_false")
     return parser.parse_args()
 
 if __name__ == "__main__":
     command_line = parse_command_line()
-    results = tune(command_line.nodes, command_line.max_levels, command_line.max_tile, command_line.real_type)
+    results = tune(command_line.nodes, command_line.max_levels, command_line.max_tile, command_line.real_type, command_line.verbose)
     best_configuration = min(results, key=lambda x : x["time"])
     print("/* Block size X: {} */".format(best_configuration["block_size_x"]))
     print(generate_code(best_configuration))
