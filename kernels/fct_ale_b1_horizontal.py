@@ -74,7 +74,7 @@ def reference(edges, nodes_per_edge, elements_per_edge, levels, max_levels, fct_
             fct_plus[(node_two * max_levels) + level] = fct_plus[(node_two * max_levels) + level] + max(0.0, -fct_adf_h[(edge * max_levels) + level])
             fct_minus[(node_two * max_levels) + level] = fct_minus[(node_two * max_levels) + level] + min(0.0, -fct_adf_h[(edge * max_levels) + level])
 
-def tune(nodes, edges, elements, max_levels, max_tile, real_type):
+def tune(nodes, edges, elements, max_levels, max_tile, real_type, quiet=True):
     numpy_real_type = None
     if real_type == "float":
         numpy_real_type = numpy.float32
@@ -112,7 +112,7 @@ def tune(nodes, edges, elements, max_levels, max_tile, real_type):
     reference(edges, nodes_per_edge, elements_per_edge, levels, max_levels, fct_adf_h, fct_plus_control, fct_minus_control)
     arguments_control = [None, None, None, None, None, fct_plus_control, fct_minus_control]
     # Tuning
-    results, environment = tune_kernel("fct_ale_b1_horizontal", generate_code, "{} * block_size_x".format(edges), arguments, tuning_parameters, lang="CUDA", answer=arguments_control, restrictions=constraints, quiet=True)
+    results, environment = tune_kernel("fct_ale_b1_horizontal", generate_code, "{} * block_size_x".format(edges), arguments, tuning_parameters, lang="CUDA", answer=arguments_control, restrictions=constraints, quiet=quiet)
     return results
 
 def parse_command_line():
@@ -123,11 +123,12 @@ def parse_command_line():
     parser.add_argument("--max_levels", help="The maximum number of vertical levels.", type=int, required=True)
     parser.add_argument("--max_tile", help="The maximum tiling factor.", type=int, default=2)
     parser.add_argument("--real_type", help="The floating point type to use.", choices=["float", "double"], type=str, required=True)
+    parser.add_argument("--verbose", help="Print all kernel configurations.", default=True, action="store_false")
     return parser.parse_args()
 
 if __name__ == "__main__":
     command_line = parse_command_line()
-    results = tune(command_line.nodes, command_line.edges, command_line.elements, command_line.max_levels, command_line.max_tile, command_line.real_type)
+    results = tune(command_line.nodes, command_line.edges, command_line.elements, command_line.max_levels, command_line.max_tile, command_line.real_type, command_line.verbose)
     best_configuration = min(results, key=lambda x : x["time"])
     print("/* Block size X: {} */".format(best_configuration["block_size_x"]))
     print(generate_code(best_configuration))
