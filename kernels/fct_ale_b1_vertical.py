@@ -109,7 +109,7 @@ def reference(nodes, levels, max_levels, fct_adf_v, fct_plus, fct_minus):
             fct_plus[item] = fct_plus[item] + (max(0.0, fct_adf_v[item]) + max(0.0, -fct_adf_v[(node * max_levels) + level + 1]))
             fct_minus[item] = fct_minus[item] + (min(0.0, fct_adf_v[item]) + min(0.0, -fct_adf_v[(node * max_levels) + level + 1]))
 
-def tune(nodes, max_levels, max_tile, real_type):
+def tune(nodes, max_levels, max_tile, real_type, quiet=True):
     numpy_real_type = None
     if real_type == "float":
         numpy_real_type = numpy.float32
@@ -146,7 +146,7 @@ def tune(nodes, max_levels, max_tile, real_type):
     shared_memory_args = dict()
     tuning_parameters["shared_memory"] = [True]
     shared_memory_args["size"] = max_levels * numpy.dtype(numpy_real_type).itemsize
-    results_shared, environment = tune_kernel("fct_ale_b1_vertical", generate_code_shared, "{} * block_size_x".format(nodes), arguments, tuning_parameters, smem_args=shared_memory_args, lang="CUDA", answer=arguments_control, restrictions=constraints, quiet=True)
+    results_shared, environment = tune_kernel("fct_ale_b1_vertical", generate_code_shared, "{} * block_size_x".format(nodes), arguments, tuning_parameters, smem_args=shared_memory_args, lang="CUDA", answer=arguments_control, restrictions=constraints, quiet=quiet)
     return results + results_shared
 
 def parse_command_line():
@@ -155,11 +155,12 @@ def parse_command_line():
     parser.add_argument("--max_levels", help="The maximum number of vertical levels per node.", type=int, required=True)
     parser.add_argument("--max_tile", help="The maximum tiling factor.", type=int, default=2)
     parser.add_argument("--real_type", help="The floating point type to use.", choices=["float", "double"], type=str, required=True)
+    parser.add_argument("--verbose", help="Print all kernel configurations.", default=True, action="store_false")
     return parser.parse_args()
 
 if __name__ == "__main__":
     command_line = parse_command_line()
-    results = tune(command_line.nodes, command_line.max_levels, command_line.max_tile, command_line.real_type)
+    results = tune(command_line.nodes, command_line.max_levels, command_line.max_tile, command_line.real_type, command_line.verbose)
     best_configuration = min(results, key=lambda x : x["time"])
     print("/* Block size X: {} */".format(best_configuration["block_size_x"]))
     if best_configuration["shared_memory"]:
