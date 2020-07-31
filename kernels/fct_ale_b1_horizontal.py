@@ -58,21 +58,34 @@ def generate_code(tuning_parameters):
     code = code.replace("<%REAL_TYPE%>", tuning_parameters["real_type"])
     return code
 
-def reference(edges, nodes_per_edge, elements_per_edge, levels, max_levels, fct_adf_h, fct_plus, fct_minus):
+def reference(edges, nodes_per_edge, elements_per_edge, levels, max_levels, fct_adf_h, fct_plus, fct_minus, real_type):
+    numpy_real_type = None
+    if real_type == "float":
+        numpy_real_type = numpy.float32
+    elif real_type == "double":
+        numpy_real_type = numpy.float64
+    else:
+        raise ValueError
+    memory_bytes = 0
     for edge in range(0, edges):
+        memory_bytes = memory_bytes + 12
         node_one = nodes_per_edge[edge * 2] - 1
         node_two = nodes_per_edge[(edge * 2) + 1] - 1
         element_one = elements_per_edge[edge * 2] - 1
         element_two = elements_per_edge[(edge * 2) + 1] - 1
         if element_two < 0:
+            memory_bytes = memory_bytes + 4
             number_levels = max(levels[element_one], 0)
         else:
+            memory_bytes = memory_bytes + 8
             number_levels = max(levels[element_one], levels[element_two])
         for level in range(0, number_levels - 1):
+            memory_bytes = memory_bytes + (5 * numpy.dtype(numpy_real_type).itemsize)
             fct_plus[(node_one * max_levels) + level] = fct_plus[(node_one * max_levels) + level] + max(0.0, fct_adf_h[(edge * max_levels) + level])
             fct_minus[(node_one * max_levels) + level] = fct_minus[(node_one * max_levels) + level] + min(0.0, fct_adf_h[(edge * max_levels) + level])
             fct_plus[(node_two * max_levels) + level] = fct_plus[(node_two * max_levels) + level] + max(0.0, -fct_adf_h[(edge * max_levels) + level])
             fct_minus[(node_two * max_levels) + level] = fct_minus[(node_two * max_levels) + level] + min(0.0, -fct_adf_h[(edge * max_levels) + level])
+    return memory_bytes
 
 def tune(nodes, edges, elements, max_levels, max_tile, real_type, quiet=True):
     numpy_real_type = None
@@ -109,10 +122,13 @@ def tune(nodes, edges, elements, max_levels, max_tile, real_type, quiet=True):
         elements_per_edge[(edge * 2) + 1] = numpy.random.randint(0, elements + 1)
     arguments = [numpy.int32(max_levels), levels, nodes_per_edge, elements_per_edge, fct_adf_h, fct_plus, fct_minus]
     # Reference
-    reference(edges, nodes_per_edge, elements_per_edge, levels, max_levels, fct_adf_h, fct_plus_control, fct_minus_control)
+    memory_bytes = reference(edges, nodes_per_edge, elements_per_edge, levels, max_levels, fct_adf_h, fct_plus_control, fct_minus_control, real_type)
     arguments_control = [None, None, None, None, None, fct_plus_control, fct_minus_control]
     # Tuning
     results, environment = tune_kernel("fct_ale_b1_horizontal", generate_code, "{} * block_size_x".format(edges), arguments, tuning_parameters, lang="CUDA", answer=arguments_control, restrictions=constraints, quiet=quiet)
+    # Memory bandwidth
+    for result in results:
+        result["memory_bandwidth"] = memory_bytes / (result["time"] / 10**3)
     return results
 
 def parse_command_line():
@@ -130,5 +146,6 @@ if __name__ == "__main__":
     command_line = parse_command_line()
     results = tune(command_line.nodes, command_line.edges, command_line.elements, command_line.max_levels, command_line.max_tile, command_line.real_type, command_line.verbose)
     best_configuration = min(results, key=lambda x : x["time"])
+    print("/* Memory bandwidth: {:.2f} GB/s */".format(best_configuration["memory_bandwidth"] / 10**9))
     print("/* Block size X: {} */".format(best_configuration["block_size_x"]))
     print(generate_code(best_configuration))
