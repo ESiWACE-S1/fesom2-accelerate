@@ -82,8 +82,10 @@ def tune(nodes, max_levels, max_tile, real_type, quiet=True):
     fct_plus_control = numpy.zeros_like(fct_plus).astype(numpy_real_type)
     fct_minus_control = numpy.zeros_like(fct_minus).astype(numpy_real_type)
     levels = numpy.zeros(nodes).astype(numpy.int32)
+    used_levels = 0
     for node in range(0, nodes):
         levels[node] = numpy.random.randint(3, max_levels)
+        used_levels = used_levels + (levels[node] - 1)
     if real_type == "float":
         arguments = [numpy.int32(max_levels), numpy.float32(dt), numpy.float32(flux_epsilon), levels, area, fct_ttf_max, fct_ttf_min, fct_plus, fct_minus]
     elif real_type == "double":
@@ -95,6 +97,10 @@ def tune(nodes, max_levels, max_tile, real_type, quiet=True):
     arguments_control = [None, None, None, None, None, None, None, fct_plus_control, fct_minus_control]
     # Tuning
     results, environment = tune_kernel("fct_ale_b2", generate_code, "{} * block_size_x".format(nodes), arguments, tuning_parameters, lang="CUDA", answer=arguments_control, restrictions=constraints, quiet=quiet)
+    # Memory bandwidth
+    memory_bytes = ((nodes * 4) + (used_levels * 7 * numpy.dtype(numpy_real_type).itemsize))
+    for result in results:
+        result["memory_bandwidth"] = memory_bytes / (result["time"] / 10**3)
     return results
 
 def parse_command_line():
@@ -110,5 +116,6 @@ if __name__ == "__main__":
     command_line = parse_command_line()
     results = tune(command_line.nodes, command_line.max_levels, command_line.max_tile, command_line.real_type, command_line.verbose)
     best_configuration = min(results, key=lambda x : x["time"])
+    print("/* Memory bandwidth: {:.2f} GB/s */".format(best_configuration["memory_bandwidth"] / 10**9))
     print("/* Block size X: {} */".format(best_configuration["block_size_x"]))
     print(generate_code(best_configuration))
