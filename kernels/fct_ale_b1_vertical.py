@@ -134,19 +134,28 @@ def tune(nodes, max_levels, max_tile, real_type, quiet=True):
     fct_plus_control = numpy.zeros_like(fct_plus).astype(numpy_real_type)
     fct_minus_control = numpy.zeros_like(fct_minus).astype(numpy_real_type)
     levels = numpy.zeros(nodes).astype(numpy.int32)
+    used_levels = 0
     for node in range(0, nodes):
         levels[node] = numpy.random.randint(3, max_levels)
+        used_levels = used_levels + levels[node]
     arguments = [numpy.int32(max_levels), levels, fct_adf_v, fct_plus, fct_minus]
     # Reference
+    memory_bytes = ((nodes * 4) + (used_levels * 4 * numpy.dtype(numpy_real_type).itemsize))
     reference(nodes, levels, max_levels, fct_adf_v, fct_plus_control, fct_minus_control)
     arguments_control = [None, None, None, fct_plus_control, fct_minus_control]
     # Tuning
     results, environment = tune_kernel("fct_ale_b1_vertical", generate_code, "{} * block_size_x".format(nodes), arguments, tuning_parameters, lang="CUDA", answer=arguments_control, restrictions=constraints, quiet=quiet)
+    # Memory bandwidth
+    for result in results:
+        result["memory_bandwidth"] = memory_bytes / (result["time"] / 10**3)
     # Shared memory version
     shared_memory_args = dict()
     tuning_parameters["shared_memory"] = [True]
     shared_memory_args["size"] = max_levels * numpy.dtype(numpy_real_type).itemsize
     results_shared, environment = tune_kernel("fct_ale_b1_vertical", generate_code_shared, "{} * block_size_x".format(nodes), arguments, tuning_parameters, smem_args=shared_memory_args, lang="CUDA", answer=arguments_control, restrictions=constraints, quiet=quiet)
+    # Memory bandwidth shared memory version
+    for result in results_shared:
+        result["memory_bandwidth"] = memory_bytes / (result["time"] / 10**3)
     return results + results_shared
 
 def parse_command_line():
@@ -162,6 +171,7 @@ if __name__ == "__main__":
     command_line = parse_command_line()
     results = tune(command_line.nodes, command_line.max_levels, command_line.max_tile, command_line.real_type, command_line.verbose)
     best_configuration = min(results, key=lambda x : x["time"])
+    print("/* Memory bandwidth: {:.2f} GB/s */".format(best_configuration["memory_bandwidth"] / 10**9))
     print("/* Block size X: {} */".format(best_configuration["block_size_x"]))
     if best_configuration["shared_memory"]:
         print(generate_code_shared(best_configuration))
