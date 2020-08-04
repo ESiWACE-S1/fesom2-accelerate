@@ -75,7 +75,7 @@ def generate_code(tuning_parameters):
     code = code.replace("<%REAL_TYPE%>", tuning_parameters["real_type"])
     return code
 
-def reference(nodes, levels, max_levels, fct_adf_v, fct_plus, fct_minus, iter_yn):
+def reference(nodes, levels, max_levels, fct_adf_v, fct_plus, fct_minus):
     for node in range(0, nodes):
         ae = 1.0
         flux = fct_adf_v[(node * max_levels)]
@@ -94,6 +94,46 @@ def reference(nodes, levels, max_levels, fct_adf_v, fct_plus, fct_minus, iter_yn
                 ae = min(ae, fct_plus[(node * max_levels) + (level - 1)])
                 ae = min(ae, fct_minus[(node * max_levels) + level])
             fct_adf_v[(node * max_levels) + level] = ae * fct_adf_v[(node * max_levels) + level]
+
+def tune(nodes, max_levels, max_tile, real_type, quiet=True):
+    numpy_real_type = None
+    if real_type == "float":
+        numpy_real_type = numpy.float32
+    elif real_type == "double":
+        numpy_real_type = numpy.float64
+    else:
+        raise ValueError
+    # Tuning and code generation parameters
+    tuning_parameters = dict()
+    tuning_parameters["shared_memory"] = [False]
+    tuning_parameters["int_type"] = ["unsigned_int", "int"]
+    tuning_parameters["real_type"] = [real_type]
+    tuning_parameters["max_levels"] = [str(max_levels)]
+    tuning_parameters["block_size_x"] = [32 * i for i in range(1, 33)]
+    tuning_parameters["tiling_x"] = [i for i in range(1, max_tile)]
+    constraints = list()
+    constraints.append("block_size_x * tiling_x <= max_levels")
+    # Memory allocation and initialization
+    fct_adf_v = numpy.random.randn(nodes * max_levels).astype(numpy_real_type)
+    fct_adf_v_control = fct_adf_v
+    fct_plus = numpy.random.randn(nodes * max_levels).astype(numpy_real_type)
+    fct_minus = numpy.random.randn(nodes * max_levels).astype(numpy_real_type)
+    levels = numpy.zeros(nodes).astype(numpy.int32)
+    used_levels = 0
+    for node in range(0, nodes):
+        levels[node] = numpy.random.randint(3, max_levels)
+        used_levels = used_levels + (levels[node] - 2)
+    arguments = [numpy.int32(max_levels), levels, fct_adf_v, fct_plus, fct_minus]
+    # Reference
+    reference(nodes, levels, max_levels, fct_adf_v, fct_plus, fct_minus)
+    arguments_control = [None, None, fct_adf_v_control, None, None]
+    # Tuning
+    results, environment = tune_kernel("fct_ale_b3_vertical", generate_code, "{} * block_size_x".format(nodes), arguments, tuning_parameters, lang="CUDA", answer=arguments_control, restrictions=constraints, quiet=quiet)
+    # Memory bandwidth
+    memory_bytes = ((nodes * 4) + (nodes * 3 * numpy.dtype(numpy_real_type).itemsize) + (used_levels * 6 * numpy.dtype(numpy_real_type).itemsize))
+    for result in results:
+        result["memory_bandwidth"] = memory_bytes / (result["time"] / 10**3)
+    return results
 
 def parse_command_line():
     parser = argparse.ArgumentParser(description="FESOM2 FCT ALE B3 VERTICAL")
