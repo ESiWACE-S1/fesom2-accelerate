@@ -5,12 +5,12 @@ import argparse
 
 def generate_code(tuning_parameters):
     code = \
-        "__global__ void fct_ale_b3_vertical(const int maxLevels, const int * __restrict__ nLevels, const <%REAL_TYPE%> * __restrict__ fct_adf_v, <%REAL_TYPE%> * __restrict__ fct_plus, <%REAL_TYPE%> * __restrict__ fct_minus)\n" \
+        "__global__ void fct_ale_b3_vertical(const int maxLevels, const int * __restrict__ nLevels, <%REAL_TYPE%> * __restrict__ fct_adf_v, const <%REAL_TYPE%> * __restrict__ fct_plus, const <%REAL_TYPE%> * __restrict__ fct_minus)\n" \
         "{\n" \
         "const <%INT_TYPE%> node = (blockIdx.x * maxLevels);\n" \
         "const <%INT_TYPE%> maxNodeLevel = nLevels[blockIdx.x] - 1;\n" \
         "\n" \
-        "/* Intermediate levels */" \
+        "/* Intermediate levels */\n" \
         "for ( <%INT_TYPE%> level = threadIdx.x + 1; level < maxNodeLevel; level += <%BLOCK_SIZE%> )\n" \
         "{\n" \
         "<%REAL_TYPE%> flux = 0.0;\n" \
@@ -18,7 +18,7 @@ def generate_code(tuning_parameters):
         "<%REAL_TYPE%> ae_minus = 0.0;\n" \
         "<%COMPUTE_BLOCK%>" \
         "}\n" \
-        "/* Top level */" \
+        "/* Top level */\n" \
         "if ( threadIdx.x == 0 )\n" \
         "{\n" \
         "<%REAL_TYPE%> flux = fct_adf_v[node];\n" \
