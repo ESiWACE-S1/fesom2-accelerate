@@ -115,7 +115,7 @@ def tune(nodes, max_levels, max_tile, real_type, quiet=True):
     constraints.append("block_size_x * tiling_x <= max_levels")
     # Memory allocation and initialization
     fct_adf_v = numpy.random.randn(nodes * max_levels).astype(numpy_real_type)
-    fct_adf_v_control = fct_adf_v
+    fct_adf_v_control = numpy.copy(fct_adf_v)
     fct_plus = numpy.random.randn(nodes * max_levels).astype(numpy_real_type)
     fct_minus = numpy.random.randn(nodes * max_levels).astype(numpy_real_type)
     levels = numpy.zeros(nodes).astype(numpy.int32)
