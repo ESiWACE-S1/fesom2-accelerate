@@ -148,7 +148,7 @@ def tune(elements, nodes, max_levels, max_tile, real_type, quiet=True):
     memory_bytes = reference(elements, levels, max_levels, element_nodes, uv_rhs_control, fct_ttf_max, fct_ttf_min, real_type)
     arguments_control = [None, None, None, uv_rhs_control, None, None]
     # Tuning
-    results, environment = tune_kernel("fct_ale_a2", generate_code, "{} * block_size_x".format(elements), arguments, tuning_parameters, lang="CUDA", answer=arguments_control, restrictions=constraints, quiet=quiet)
+    results, _ = tune_kernel("fct_ale_a2", generate_code, "{} * block_size_x".format(elements), arguments, tuning_parameters, lang="CUDA", answer=arguments_control, restrictions=constraints, quiet=quiet)
     # Memory bandwidth
     for result in results:
         result["memory_bandwidth"] = memory_bytes / (result["time"] / 10**3)

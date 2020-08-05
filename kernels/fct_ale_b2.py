@@ -96,7 +96,7 @@ def tune(nodes, max_levels, max_tile, real_type, quiet=True):
     reference(nodes, dt, flux_epsilon, levels, max_levels, area, fct_ttf_max, fct_ttf_min, fct_plus_control, fct_minus_control)
     arguments_control = [None, None, None, None, None, None, None, fct_plus_control, fct_minus_control]
     # Tuning
-    results, environment = tune_kernel("fct_ale_b2", generate_code, "{} * block_size_x".format(nodes), arguments, tuning_parameters, lang="CUDA", answer=arguments_control, restrictions=constraints, quiet=quiet)
+    results, _ = tune_kernel("fct_ale_b2", generate_code, "{} * block_size_x".format(nodes), arguments, tuning_parameters, lang="CUDA", answer=arguments_control, restrictions=constraints, quiet=quiet)
     # Memory bandwidth
     memory_bytes = ((nodes * 4) + (used_levels * 7 * numpy.dtype(numpy_real_type).itemsize))
     for result in results:
