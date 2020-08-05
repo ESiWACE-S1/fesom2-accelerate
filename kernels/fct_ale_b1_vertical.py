@@ -137,7 +137,7 @@ def tune(nodes, max_levels, max_tile, real_type, quiet=True):
     used_levels = 0
     for node in range(0, nodes):
         levels[node] = numpy.random.randint(3, max_levels)
-        used_levels = used_levels + levels[node]
+        used_levels = used_levels + (levels[node] - 1)
     arguments = [numpy.int32(max_levels), levels, fct_adf_v, fct_plus, fct_minus]
     # Reference
     reference(nodes, levels, max_levels, fct_adf_v, fct_plus_control, fct_minus_control)
