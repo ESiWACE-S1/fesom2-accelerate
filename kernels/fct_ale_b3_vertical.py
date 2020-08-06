@@ -75,6 +75,90 @@ def generate_code(tuning_parameters):
     code = code.replace("<%REAL_TYPE%>", tuning_parameters["real_type"])
     return code
 
+def generate_code_shared(tuning_parameters):
+    code = \
+        "__global__ void fct_ale_b3_vertical(const int maxLevels, const int * __restrict__ nLevels, <%REAL_TYPE%> * __restrict__ fct_adf_v, const <%REAL_TYPE%> * __restrict__ fct_plus, const <%REAL_TYPE%> * __restrict__ fct_minus)\n" \
+        "{\n" \
+        "const <%INT_TYPE%> node = (blockIdx.x * maxLevels);\n" \
+        "const <%INT_TYPE%> maxNodeLevel = nLevels[blockIdx.x] - 1;\n" \
+        "extern __shared__ <%REAL_TYPE%> sharedBuffer[];\n" \
+        "<%REAL_TYPE%> * fct_plus_local = (<%REAL_TYPE%> *)(sharedBuffer);\n" \
+        "<%REAL_TYPE%> * fct_minus_local = (<%REAL_TYPE%> *)(&sharedBuffer[maxLevels]);\n" \
+        "\n" \
+        "/* Load fct_plus and fct_minus to shared memory */\n" \
+        "for ( <%INT_TYPE%> level = threadIdx.x; level < maxNodeLevel; level += <%BLOCK_SIZE%> )\n" \
+        "{\n" \
+        "<%LOAD_BLOCK%>" \
+        "}\n" \
+        "__syncthreads();\n" \
+        "/* Intermediate levels */\n" \
+        "for ( <%INT_TYPE%> level = threadIdx.x + 1; level < maxNodeLevel; level += <%BLOCK_SIZE%> )\n" \
+        "{\n" \
+        "<%REAL_TYPE%> flux = 0.0;\n" \
+        "<%REAL_TYPE%> ae = 0.0;\n" \
+        "<%COMPUTE_BLOCK%>" \
+        "}\n" \
+        "/* Top level */\n" \
+        "if ( threadIdx.x == 0 )\n" \
+        "{\n" \
+        "<%REAL_TYPE%> flux = fct_adf_v[node];\n" \
+        "<%REAL_TYPE%> ae = 1.0;\n" \
+        "if ( signbit(flux) == 0 )\n" \
+        "{\n" \
+        "ae = <%FMIN%>(ae, fct_plus_local[0]);\n" \
+        "}\n" \
+        "else\n" \
+        "{\n" \
+        "ae = <%FMIN%>(ae, fct_minus_local[0]);\n" \
+        "}\n" \
+        "fct_adf_v[node] = ae * flux;\n" \
+        "}\n" \
+        "}\n"
+    load_block = \
+        "fct_plus_local[level + <%OFFSET%>] = fct_plus[node + (level + <%OFFSET%>)];\n" \
+        "fct_minus_local[level + <%OFFSET%>] = fct_minus[node + (level + <%OFFSET%>)];\n"
+    compute_block = \
+        "flux = fct_adf_v[node + level + <%OFFSET%>];\n" \
+        "ae = 1.0;\n" \
+        "if ( signbit(flux) == 0 )\n" \
+        "{\n" \
+        "ae = <%FMIN%>(ae, fct_minus_local[(level + <%OFFSET%>) - 1]);\n" \
+        "ae = <%FMIN%>(ae, fct_plus_local[(level + <%OFFSET%>)]);\n" \
+        "}\n" \
+        "else\n" \
+        "{\n" \
+        "ae = <%FMIN%>(ae, fct_minus_local[(level + <%OFFSET%>)]);\n" \
+        "ae = <%FMIN%>(ae, fct_plus_local[(level + <%OFFSET%>) - 1]);\n" \
+        "}\n" \
+        "fct_adf_v[node + level + <%OFFSET%>] = ae * flux;\n"
+    if tuning_parameters["tiling_x"] > 1:
+        code = code.replace("<%BLOCK_SIZE%>", str(tuning_parameters["block_size_x"] * tuning_parameters["tiling_x"]))
+    else:
+        code = code.replace("<%BLOCK_SIZE%>", str(tuning_parameters["block_size_x"]))
+    load = str()
+    compute = str()
+    for tile in range(0, tuning_parameters["tiling_x"]):
+        if tile == 0:
+            load = load + load_block.replace(" + <%OFFSET%>", "")
+            compute = compute + compute_block.replace(" + <%OFFSET%>", "")
+        else:
+            offset = tuning_parameters["block_size_x"] * tile
+            load = load + "if ( level + {} < maxNodeLevel )\n{{\n{}}}\n".format(str(offset), load_block.replace("<%OFFSET%>", str(offset)))
+            compute = compute + "if ( level + {} < maxNodeLevel )\n{{\n{}}}\n".format(str(offset), compute_block.replace("<%OFFSET%>", str(offset)))
+    code = code.replace("<%LOAD_BLOCK%>", load)
+    code = code.replace("<%COMPUTE_BLOCK%>", compute)
+    if tuning_parameters["real_type"] == "float":
+        code = code.replace("<%FMAX%>", "fmaxf")
+        code = code.replace("<%FMIN%>", "fminf")
+    elif tuning_parameters["real_type"] == "double":
+        code = code.replace("<%FMAX%>", "fmax")
+        code = code.replace("<%FMIN%>", "fmin")
+    else:
+        raise ValueError
+    code = code.replace("<%INT_TYPE%>", tuning_parameters["int_type"].replace("_", " "))
+    code = code.replace("<%REAL_TYPE%>", tuning_parameters["real_type"])
+    return code
+
 def reference(nodes, levels, max_levels, fct_adf_v, fct_plus, fct_minus):
     for node in range(0, nodes):
         ae = 1.0
@@ -133,7 +217,16 @@ def tune(nodes, max_levels, max_tile, real_type, quiet=True):
     memory_bytes = ((nodes * 4) + (nodes * 3 * numpy.dtype(numpy_real_type).itemsize) + (used_levels * 6 * numpy.dtype(numpy_real_type).itemsize))
     for result in results:
         result["memory_bandwidth"] = memory_bytes / (result["time"] / 10**3)
-    return results
+    # Shared memory version
+    shared_memory_args = dict()
+    tuning_parameters["shared_memory"] = [True]
+    shared_memory_args["size"] = max_levels * numpy.dtype(numpy_real_type).itemsize
+    results_shared, _ = tune_kernel("fct_ale_b3_vertical", generate_code_shared, "{} * block_size_x".format(nodes), arguments, tuning_parameters, smem_args=shared_memory_args, lang="CUDA", answer=arguments_control, restrictions=constraints, quiet=quiet)
+    # Memory bandwidth shared memory version
+    memory_bytes = ((nodes * 4) + (nodes * numpy.dtype(numpy_real_type).itemsize) + (used_levels * 3 * numpy.dtype(numpy_real_type).itemsize))
+    for result in results_shared:
+        result["memory_bandwidth"] = memory_bytes / (result["time"] / 10**3)
+    return results + results_shared
 
 def parse_command_line():
     parser = argparse.ArgumentParser(description="FESOM2 FCT ALE B3 VERTICAL")
@@ -150,4 +243,7 @@ if __name__ == "__main__":
     best_configuration = min(results, key=lambda x : x["time"])
     print("/* Memory bandwidth: {:.2f} GB/s */".format(best_configuration["memory_bandwidth"] / 10**9))
     print("/* Block size X: {} */".format(best_configuration["block_size_x"]))
-    print(generate_code(best_configuration))
+    if best_configuration["shared_memory"]:
+        print(generate_code_shared(best_configuration))
+    else:
+        print(generate_code(best_configuration))
