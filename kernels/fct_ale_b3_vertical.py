@@ -200,6 +200,7 @@ def tune(nodes, max_levels, max_tile, real_type, quiet=True):
     # Memory allocation and initialization
     fct_adf_v = numpy.random.randn(nodes * max_levels).astype(numpy_real_type)
     fct_adf_v_control = numpy.copy(fct_adf_v)
+    fct_adf_v_shared = numpy.copy(fct_adf_v)
     fct_plus = numpy.random.randn(nodes * max_levels).astype(numpy_real_type)
     fct_minus = numpy.random.randn(nodes * max_levels).astype(numpy_real_type)
     levels = numpy.zeros(nodes).astype(numpy.int32)
@@ -221,6 +222,7 @@ def tune(nodes, max_levels, max_tile, real_type, quiet=True):
     shared_memory_args = dict()
     tuning_parameters["shared_memory"] = [True]
     shared_memory_args["size"] = max_levels * numpy.dtype(numpy_real_type).itemsize
+    arguments = [numpy.int32(max_levels), levels, fct_adf_v_shared, fct_plus, fct_minus]
     results_shared, _ = tune_kernel("fct_ale_b3_vertical", generate_code_shared, "{} * block_size_x".format(nodes), arguments, tuning_parameters, smem_args=shared_memory_args, lang="CUDA", answer=arguments_control, restrictions=constraints, quiet=quiet)
     # Memory bandwidth shared memory version
     memory_bytes = ((nodes * 4) + (nodes * numpy.dtype(numpy_real_type).itemsize) + (used_levels * 3 * numpy.dtype(numpy_real_type).itemsize))
