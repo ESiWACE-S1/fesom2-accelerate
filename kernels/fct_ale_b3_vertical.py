@@ -225,7 +225,7 @@ def tune(nodes, max_levels, max_tile, real_type, quiet=True):
     arguments = [numpy.int32(max_levels), levels, fct_adf_v_shared, fct_plus, fct_minus]
     results_shared, _ = tune_kernel("fct_ale_b3_vertical", generate_code_shared, "{} * block_size_x".format(nodes), arguments, tuning_parameters, smem_args=shared_memory_args, lang="CUDA", answer=arguments_control, restrictions=constraints, quiet=quiet)
     # Memory bandwidth shared memory version
-    memory_bytes = ((nodes * 4) + (nodes * numpy.dtype(numpy_real_type).itemsize) + (used_levels * 3 * numpy.dtype(numpy_real_type).itemsize))
+    memory_bytes = ((nodes * 4) + (nodes * 3 * numpy.dtype(numpy_real_type).itemsize) + (used_levels * 3 * numpy.dtype(numpy_real_type).itemsize))
     for result in results_shared:
         result["memory_bandwidth"] = memory_bytes / (result["time"] / 10**3)
     return results + results_shared
