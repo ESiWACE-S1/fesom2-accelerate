@@ -121,7 +121,7 @@ def tune(nodes, edges, elements, max_levels, max_tile, real_type, quiet=True):
     fct_adf_h_control = numpy.copy(fct_adf_h)
     fct_plus = numpy.random.randn(nodes * max_levels).astype(numpy_real_type)
     fct_minus = numpy.random.randn(nodes * max_levels).astype(numpy_real_type)
-    levels = numpy.zeros(nodes).astype(numpy.int32)
+    levels = numpy.zeros(elements).astype(numpy.int32)
     for element in range(0, elements):
         levels[element] = numpy.random.randint(3, max_levels)
     nodes_per_edge = numpy.zeros(edges * 2).astype(numpy.int32)
