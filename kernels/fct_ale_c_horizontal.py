@@ -25,12 +25,14 @@ def generate_code(tuning_parameters):
         "\n" \
         "for ( <%INT_TYPE%> level = threadIdx.x; level < levelBound - 1; level += <%BLOCK_SIZE%> )\n" \
         "{\n" \
+        "<%REAL_TYPE%> fct_adf_h_item = 0;\n" \
         "<%COMPUTE_BLOCK%>" \
         "}\n" \
         "}\n"
     compute_block = \
-        "atomicAdd(&(del_ttf_advhoriz[nodeOne + level + <%OFFSET%>]), (fct_adf_h[(blockIdx.x * maxLevels) + level + <%OFFSET%>] * (dt / area[nodeOne + level + <%OFFSET%>])));\n" \
-        "atomicAdd(&(del_ttf_advhoriz[nodeTwo + level + <%OFFSET%>]), -(fct_adf_h[(blockIdx.x * maxLevels) + level + <%OFFSET%>] * (dt / area[nodeTwo + level + <%OFFSET%>])));\n"
+        "fct_adf_h_item = fct_adf_h[(blockIdx.x * maxLevels) + level + <%OFFSET%>];\n" \
+        "atomicAdd(&(del_ttf_advhoriz[nodeOne + level + <%OFFSET%>]), (fct_adf_h_item * (dt / area[nodeOne + level + <%OFFSET%>])));\n" \
+        "atomicAdd(&(del_ttf_advhoriz[nodeTwo + level + <%OFFSET%>]), -(fct_adf_h_item * (dt / area[nodeTwo + level + <%OFFSET%>])));\n"
     if tuning_parameters["tiling_x"] > 1:
         code = code.replace("<%BLOCK_SIZE%>", str(tuning_parameters["block_size_x"] * tuning_parameters["tiling_x"]))
     else:
@@ -62,7 +64,7 @@ def reference(edges, nodes_per_edge, elements_per_edge, levels, max_levels, del_
             memory_bytes = memory_bytes + (2 * 4)
             number_levels = max(levels[element_one], levels[element_two])
         for level in range(0, number_levels - 1):
-            memory_bytes = memory_bytes + (8 * numpy.dtype(numpy_real_type).itemsize)
+            memory_bytes = memory_bytes + (7 * numpy.dtype(numpy_real_type).itemsize)
             del_ttf_advhoriz[(node_one * max_levels) + level] = del_ttf_advhoriz[(node_one * max_levels) + level] + (fct_adf_h[(edge * max_levels) + level] * (dt / area[(node_one * max_levels) + level]))
             del_ttf_advhoriz[(node_two * max_levels) + level] = del_ttf_advhoriz[(node_two * max_levels) + level] - (fct_adf_h[(edge * max_levels) + level] * (dt / area[(node_two * max_levels) + level]))
     return memory_bytes
