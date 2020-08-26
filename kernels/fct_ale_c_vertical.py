@@ -74,7 +74,12 @@ def tune(nodes, max_levels, max_tile, real_type, quiet=True):
     for node in range(0, nodes):
         levels[node] = numpy.random.randint(3, max_levels)
         used_levels = used_levels + (levels[node] - 1)
-    arguments = [numpy.int32(max_levels), levels, del_ttf_advvert, ttf, hnode, fct_LO, hnode_new, fct_adf_v, dt, area]
+    if real_type == "float":
+        arguments = [numpy.int32(max_levels), levels, del_ttf_advvert, ttf, hnode, fct_LO, hnode_new, fct_adf_v, numpy.float32(dt), area]
+    elif real_type == "double":
+        arguments = [numpy.int32(max_levels), levels, del_ttf_advvert, ttf, hnode, fct_LO, hnode_new, fct_adf_v, numpy.float64(dt), area]
+    else:
+        raise ValueError
     # Reference
     reference(nodes, levels, max_levels, del_ttf_advvert_control, ttf, hnode, fct_LO, hnode_new, fct_adf_v, dt, area)
     arguments_control = [None, None, del_ttf_advvert, None, None, None, None, None, None, None]
