@@ -305,7 +305,8 @@ subroutine fct_ale(ttf, iter_yn, mesh)
         el=edge_tri(:,edge)
         nl1=nlevels(el(1))-1
         nl2=0
-        if(el(2)>0) nl2=nlevels(el(2))-1
+        if(el(2)>0)
+            nl2=nlevels(el(2))-1
         do nz=1, max(nl1,nl2)
             del_ttf_advhoriz(nz,enodes(1))=del_ttf_advhoriz(nz,enodes(1))+fct_adf_h(nz,edge)*dt/area(nz,enodes(1))
             del_ttf_advhoriz(nz,enodes(2))=del_ttf_advhoriz(nz,enodes(2))-fct_adf_h(nz,edge)*dt/area(nz,enodes(2))
