@@ -29,8 +29,8 @@ def generate_code(tuning_parameters):
         "}\n" \
         "}\n"
     compute_block = \
-        "atomicAdd(&(del_ttf_advhoriz[(nodeOne * maxLevels) + level + <%OFFSET%>]), (fct_adf_h[(blockIdx.x * maxLevels) + level + <%OFFSET%>] * (dt / area[(nodeOne * maxLevels) + level + <%OFFSET%>])));\n" \
-        "atomicAdd(&(del_ttf_advhoriz[(nodeTwo * maxLevels) + level + <%OFFSET%>]), -(fct_adf_h[(blockIdx.x * maxLevels) + level + <%OFFSET%>] * (dt / area[(nodeTwo * maxLevels) + level + <%OFFSET%>])));\n"
+        "atomicAdd(&(del_ttf_advhoriz[nodeOne + level + <%OFFSET%>]), (fct_adf_h[(blockIdx.x * maxLevels) + level + <%OFFSET%>] * (dt / area[nodeOne + level + <%OFFSET%>])));\n" \
+        "atomicAdd(&(del_ttf_advhoriz[nodeTwo + level + <%OFFSET%>]), -(fct_adf_h[(blockIdx.x * maxLevels) + level + <%OFFSET%>] * (dt / area[nodeTwo + level + <%OFFSET%>])));\n"
     if tuning_parameters["tiling_x"] > 1:
         code = code.replace("<%BLOCK_SIZE%>", str(tuning_parameters["block_size_x"] * tuning_parameters["tiling_x"]))
     else:
