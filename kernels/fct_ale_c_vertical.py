@@ -82,7 +82,7 @@ def tune(nodes, max_levels, max_tile, real_type, quiet=True):
         raise ValueError
     # Reference
     reference(nodes, levels, max_levels, del_ttf_advvert_control, ttf, hnode, fct_LO, hnode_new, fct_adf_v, dt, area)
-    arguments_control = [None, None, del_ttf_advvert, None, None, None, None, None, None, None]
+    arguments_control = [None, None, del_ttf_advvert_control, None, None, None, None, None, None, None]
     # Tuning
     results, _ = tune_kernel("fct_ale_c_vertical", generate_code, "{} * block_size_x".format(nodes), arguments, tuning_parameters, lang="CUDA", answer=arguments_control, restrictions=constraints, quiet=quiet)
     # Memory bandwidth
