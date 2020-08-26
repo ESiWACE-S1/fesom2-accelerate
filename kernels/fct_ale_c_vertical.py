@@ -17,10 +17,10 @@ def generate_code(tuning_parameters):
         "}\n" \
         "}\n"
     compute_block = \
-        "temp = ttf[node + level + <%OFFSET%>] * hnode[node + level + <%OFFSET%>];\n" \
+        "temp = del_ttf_advvert[node + level + <%OFFSET%>] - (ttf[node + level + <%OFFSET%>] * hnode[node + level + <%OFFSET%>]);\n" \
         "temp += fct_LO[node + level + <%OFFSET%>] * hnode_new[node + level + <%OFFSET%>];\n" \
         "temp += (fct_adf_v[node + level + <%OFFSET%>] - fct_adf_v[node + level + <%OFFSET%> + 1]) * (dt / area[node + level + <%OFFSET%>]);\n" \
-        "del_ttf_advvert[node + level + <%OFFSET%>] = del_ttf_advvert[node + level + <%OFFSET%>] - temp;\n"
+        "del_ttf_advvert[node + level + <%OFFSET%>] = temp;\n"
     if tuning_parameters["tiling_x"] > 1:
         code = code.replace("<%BLOCK_SIZE%>", str(tuning_parameters["block_size_x"] * tuning_parameters["tiling_x"]))
     else:
