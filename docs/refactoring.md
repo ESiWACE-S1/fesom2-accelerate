@@ -317,6 +317,11 @@ end subroutine fct_ale
 
 ### Data
 
+#### Data Dependency Graph
+
+![Data Dependency Graph](fct_ale_dependencies.png)
+
+
 #### Nodes, elements, and edges
 - myDim_nod2D : *integer*
     - Used in multiple loops, it represents the beginning of some partition.
