@@ -9,7 +9,7 @@ extern __global__ void fct_ale_a2b(const int maxLevels, const int * __restrict__
 extern __global__ void fct_ale_a3(const int maxLevels, const int maxElements, const int * __restrict__ nLevels, const int * __restrict__ elements_in_node, const int * __restrict__ number_elements_in_node, const double2 * __restrict__ UV_rhs, double * __restrict__ fct_ttf_max, double * __restrict__ fct_ttf_min, const double * __restrict__ fct_lo);
 extern __global__ void fct_ale_b1_vertical(const int maxLevels, const int * __restrict__ nLevels, const double * __restrict__ fct_adf_v, double * __restrict__ fct_plus, double * __restrict__ fct_minus);
 extern __global__ void fct_ale_b1_horizontal(const int maxLevels, const int * __restrict__ nLevels, const int * __restrict__ nodesPerEdge, const int * __restrict__ elementsPerEdge, const double * __restrict__ fct_adf_h, double * __restrict__ fct_plus, double * __restrict__ fct_minus);
-extern __global__ void fct_ale_b2(const int maxLevels, const double dt, const double fluxEpsilon, const int * __restrict__ nLevels, const double * __restrict__ area_inv, const double * __restrict__ fct_ttf_max, const double * __restrict__ fct_ttf_min, double * __restrict__ fct_plus, double * __restrict__ fct_minus)
+extern __global__ void fct_ale_b2(const int maxLevels, const double dt, const double fluxEpsilon, const int * __restrict__ nLevels, const double * __restrict__ area_inv, const double * __restrict__ fct_ttf_max, const double * __restrict__ fct_ttf_min, double * __restrict__ fct_plus, double * __restrict__ fct_minus);
 extern __global__ void fct_ale_pre_comm(const int max_levels, const int num_nodes, const int max_num_elems, const int * __restrict__ node_levels, const int * __restrict__ elem_levels, const int * __restrict__ node_elems, const int * __restrict__ node_num_elems, const int * __restrict__ elem_nodes, const double * __restrict__ fct_low_order, const double * __restrict__ ttf, const double * __restrict__ fct_adf_v, const double * __restrict__ fct_adf_h, double * __restrict__ UVrhs, double * __restrict__ fct_ttf_max, double * __restrict__ fct_ttf_min, double * __restrict__ fct_plus, double * __restrict__ fct_minus, const double bignr);
 
 struct gpuMemory * allocate(void * hostMemory, std::size_t size)
@@ -200,7 +200,7 @@ void fct_ale_pre_comm_acc_( int* alg_state, void** fct_ttf_max, void**  fct_ttf_
     *alg_state = 4;
     fct_ale_b1_horizontal<<< dim3(*myDim_nod2D), dim3(32) >>>(maxLevels, nlevels_elem2D_dev, nod2D_edges_dev, elem2D_edges_dev, fct_adf_h_dev, fct_plus_dev, fct_min_dev);
     *alg_state = 5;
-    fct_ale_b2<<< dim3(*myDim_nod2D), dim3(32) >>>(maxLevels, dt, flux_eps, nlevels_nod2D_dev, area_inv_dev, fct_ttf_max_dev, fct_ttf_min_dev, fct_plus_dev, fct_ttf_min_dev);
+    fct_ale_b2<<< dim3(*myDim_nod2D), dim3(32) >>>(maxLevels, *dt, *flux_eps, nlevels_nod2D_dev, area_inv_dev, fct_ttf_max_dev, fct_ttf_min_dev, fct_plus_dev, fct_ttf_min_dev);
     *alg_state = 6;
 #endif
 
