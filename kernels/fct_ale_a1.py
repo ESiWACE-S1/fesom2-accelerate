@@ -113,5 +113,8 @@ if __name__ == "__main__":
     print("/* Block size X: {} */".format(best_configuration["block_size_x"]))
     print(generate_code(best_configuration))
     if command_line.store:
-        with open("fct_ale_a1_{}_{}_{}.json".format(command_line.nodes, command_line.max_levels, command_line.real_type)) as fp:
-            json.dump(results, fp)
+        try:
+            with open("fct_ale_a1_{}_{}_{}.json".format(command_line.nodes, command_line.max_levels, command_line.real_type), "x") as fp:
+                json.dump(results, fp)
+        except FileExistsError:
+            print("Impossible to save the results, a results file already exists for a similar experiment.")
