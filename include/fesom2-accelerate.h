@@ -118,6 +118,7 @@ void fct_ale_a1_reference_( int * nNodes, int * nLevels_nod2D, int * maxLevels_p
 
 
 #ifdef __CUDACC__
+void allocate_pinned_doubles_(void** hostptr, int* size)
 void transfer_mesh_(void** ret, int* host_ptr, int* size, int* istat);
 void alloc_var_(void** ret, real_type* host_ptr, int* size, int* istat);
 void reserve_var_(void** ret, int* size, int* istat);

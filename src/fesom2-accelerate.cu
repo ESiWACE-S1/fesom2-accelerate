@@ -122,6 +122,16 @@ void alloc_var_(void** ret, real_type* host_ptr, int* size, int* istat)
     *ret = (void*)gpumem;
 }
 
+void allocate_pinned_doubles_(void** hostptr, int* size)
+{
+    cudaError_t status = cudaSuccess;
+    status = cudaMallocHost(hostptr, sizeof(double) * (*size));
+    if ( !errorHandling(status) )
+    {
+        std::cerr<<"Error in allocating page-locked memory"<<std::endl;
+    }
+}
+
 void transfer_var_(void** mem, real_type* host_ptr)
 {
     struct gpuMemory* mem_gpu = static_cast<gpuMemory*>(*mem);
@@ -204,13 +214,6 @@ void fct_ale_pre_comm_acc_( int* alg_state, void** fct_ttf_max, void**  fct_ttf_
     *alg_state = 6;
 #endif
 
-    status = transferToHost(*static_cast<gpuMemory*>(*UV_rhs));
-    if ( !status )
-    {
-        std::cerr<<"Error in transfer of UV_rhs to host"<<std::endl;
-        *alg_state = 0;
-        return;
-    }
     status = transferToHost(*static_cast<gpuMemory*>(*fct_plus));
     if ( !status )
     {
