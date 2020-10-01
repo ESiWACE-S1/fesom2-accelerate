@@ -2,6 +2,7 @@
 from kernel_tuner import tune_kernel
 import numpy
 import argparse
+import json
 
 def generate_code(tuning_parameters):
     code = \
@@ -162,6 +163,7 @@ def parse_command_line():
     parser.add_argument("--max_tile", help="The maximum tiling factor.", type=int, default=2)
     parser.add_argument("--real_type", help="The floating point type to use.", choices=["float", "double"], type=str, required=True)
     parser.add_argument("--verbose", help="Print all kernel configurations.", default=True, action="store_false")
+    parser.add_argument("--store", help="Store performance results in a JSON file.", default=False, action="store_true")
     return parser.parse_args()
 
 if __name__ == "__main__":
@@ -171,3 +173,9 @@ if __name__ == "__main__":
     print("/* Memory bandwidth: {:.2f} GB/s */".format(best_configuration["memory_bandwidth"] / 10**9))
     print("/* Block size X: {} */".format(best_configuration["block_size_x"]))
     print(generate_code(best_configuration))
+    if command_line.store:
+        try:
+            with open("fct_ale_a2_{}_{}_{}_{}.json".format(command_line.nodes, command_line.elements, command_line.max_levels, command_line.real_type), "x") as fp:
+                json.dump(results, fp)
+        except FileExistsError:
+            print("Impossible to save the results, a results file already exists for a similar experiment.")
