@@ -27,9 +27,11 @@ def generate_code(tuning_parameters):
         "fct_plus[index] = <%FMIN%>(1.0, fct_ttf_max[index] / (((fct_plus[index] * dt) / area_item) + fluxEpsilon));\n" \
         "fct_minus[index] = <%FMIN%>(1.0, fct_ttf_min[index] / (((fct_minus[index] * dt) / area_item) - fluxEpsilon));\n"
     compute_main_split = \
-        "temp = ((fct_plus[index] * dt) / area_item) + fluxEpsilon;\n" \
+        "temp = fct_plus[index];\n" \
+        "temp = ((temp * dt) / area_item) + fluxEpsilon;\n" \
         "fct_plus[index] = <%FMIN%>(1.0, fct_ttf_max[index] / temp);\n" \
-        "temp = ((fct_minus[index] * dt) / area_item) - fluxEpsilon;\n" \
+        "temp = fct_minus[index];\n" \
+        "temp = ((temp * dt) / area_item) - fluxEpsilon;\n" \
         "fct_minus[index] = <%FMIN%>(1.0, fct_ttf_min[index] / temp);\n"
     if tuning_parameters["tiling_x"] > 1:
         code = code.replace("<%BLOCK_SIZE%>", str(tuning_parameters["block_size_x"] * tuning_parameters["tiling_x"]))
