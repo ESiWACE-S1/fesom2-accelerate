@@ -38,7 +38,7 @@ def generate_code(tuning_parameters):
         "temp = fct_minus[index];\n" \
         "temp = ((temp * dt) / area_item) - fluxEpsilon;\n" \
         "temp = fct_ttf_min[index] / temp;\n" \
-        "temp = <%MIN_BLOCK%>>;\n" \
+        "temp = <%MIN_BLOCK%>;\n" \
         "fct_minus[index] = temp;\n"
     min_original = "<%FMIN%>(1.0, temp)"
     min_rewrite = "(1.0 * (1.0 < temp)) + (temp * (1.0 >= temp))"
