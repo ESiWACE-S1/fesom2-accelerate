@@ -26,17 +26,22 @@ def generate_code(tuning_parameters):
     compute_main_compact = \
         "fct_plus[index] = <%FMIN%>(1.0, fct_ttf_max[index] / (((fct_plus[index] * dt) / area_item) + fluxEpsilon));\n" \
         "fct_minus[index] = <%FMIN%>(1.0, fct_ttf_min[index] / (((fct_minus[index] * dt) / area_item) - fluxEpsilon));\n"
+    compute_main_compact_rewrite = \
+        "fct_plus[index] = (1.0 * (1.0 < fct_ttf_max[index] / (((fct_plus[index] * dt) / area_item) + fluxEpsilon))) + ((fct_ttf_max[index] / (((fct_plus[index] * dt) / area_item) + fluxEpsilon)) * (1.0 >= fct_ttf_max[index] / (((fct_plus[index] * dt) / area_item) + fluxEpsilon)));\n" \
+        "fct_minus[index] = (1.0 * (1.0 < fct_ttf_min[index] / (((fct_minus[index] * dt) / area_item) - fluxEpsilon))) + ((fct_ttf_min[index] / (((fct_minus[index] * dt) / area_item) - fluxEpsilon)) * (1.0 >= fct_ttf_min[index] / (((fct_minus[index] * dt) / area_item) - fluxEpsilon)));\n"
     compute_main_split = \
         "temp = fct_plus[index];\n" \
         "temp = ((temp * dt) / area_item) + fluxEpsilon;\n" \
         "temp = fct_ttf_max[index] / temp;\n" \
-        "temp = <%FMIN%>(1.0, temp);\n" \
+        "temp = <%MIN_BLOCK%>;\n" \
         "fct_plus[index] = temp;\n" \
         "temp = fct_minus[index];\n" \
         "temp = ((temp * dt) / area_item) - fluxEpsilon;\n" \
         "temp = fct_ttf_min[index] / temp;\n" \
-        "temp = <%FMIN%>(1.0, temp);\n" \
+        "temp = <%MIN_BLOCK%>>;\n" \
         "fct_minus[index] = temp;\n"
+    min_original = "<%FMIN%>(1.0, temp)"
+    min_rewrite = "(1.0 * (1.0 < temp)) + (temp * (1.0 >= temp))"
     if tuning_parameters["tiling_x"] > 1:
         code = code.replace("<%BLOCK_SIZE%>", str(tuning_parameters["block_size_x"] * tuning_parameters["tiling_x"]))
     else:
@@ -54,17 +59,25 @@ def generate_code(tuning_parameters):
             compute = compute + "if ( level + {} < maxNodeLevel )\n{{\n{}}}\n".format(str(offset), compute_block.replace("<%OFFSET%>", str(offset)))
     if tuning_parameters["split_compute"]:
         compute = compute.replace("<%COMPUTE_MAIN%>", compute_main_split)
+        if tuning_parameters["min_rewrite"]:
+            compute = compute.replace("<%MIN_BLOCK%>", min_rewrite)
+        else:
+            compute = compute.replace("<%MIN_BLOCK%>", min_original)
     else:
-        compute = compute.replace("<%COMPUTE_MAIN%>", compute_main_compact)
+        if tuning_parameters["min_rewrite"]:
+            compute = compute.replace("<%COMPUTE_MAIN%>", compute_main_compact_rewrite)
+        else:
+            compute = compute.replace("<%COMPUTE_MAIN%>", compute_main_compact)
     code = code.replace("<%COMPUTE_BLOCK%>", compute)
-    if tuning_parameters["real_type"] == "float":
-        code = code.replace("<%FMAX%>", "fmaxf")
-        code = code.replace("<%FMIN%>", "fminf")
-    elif tuning_parameters["real_type"] == "double":
-        code = code.replace("<%FMAX%>", "fmax")
-        code = code.replace("<%FMIN%>", "fmin")
-    else:
-        raise ValueError
+    if not tuning_parameters["min_rewrite"]:
+        if tuning_parameters["real_type"] == "float":
+            code = code.replace("<%FMAX%>", "fmaxf")
+            code = code.replace("<%FMIN%>", "fminf")
+        elif tuning_parameters["real_type"] == "double":
+            code = code.replace("<%FMAX%>", "fmax")
+            code = code.replace("<%FMIN%>", "fmin")
+        else:
+            raise ValueError
     code = code.replace("<%INT_TYPE%>", tuning_parameters["int_type"].replace("_", " "))
     code = code.replace("<%REAL_TYPE%>", tuning_parameters["real_type"])
     return code
@@ -94,6 +107,7 @@ def tune(nodes, max_levels, max_tile, real_type, quiet=True):
     tuning_parameters["block_size_x"] = [32 * i for i in range(1, 33)]
     tuning_parameters["tiling_x"] = [i for i in range(1, max_tile)]
     tuning_parameters["split_compute"] = [False, True]
+    tuning_parameters["min_rewrite"] = [False, True]
     constraints = list()
     constraints.append("block_size_x * tiling_x <= max_levels")
     # Memory allocation and initialization
