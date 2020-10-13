@@ -19,6 +19,8 @@ def generate_code(tuning_parameters):
         "}\n" \
         "}\n"
     temp_var = "<%REAL_TYPE%> temp = 0;\n"
+    temp_interleave = "<%REAL_TYPE%> temp_plus = 0;\n" \
+        "<%REAL_TYPE%> temp_minus = 0;\n"
     compute_block = \
         "index = (blockIdx.x * maxLevels) + level + <%OFFSET%>;\n" \
         "area_item = area[index];\n" \
@@ -40,8 +42,22 @@ def generate_code(tuning_parameters):
         "temp = fct_ttf_min[index] / temp;\n" \
         "temp = <%MIN_BLOCK%>;\n" \
         "fct_minus[index] = temp;\n"
+    compute_main_split_interleave = \
+        "temp_plus = fct_plus[index];\n" \
+        "temp_minus = fct_minus[index];\n" \
+        "temp_plus = ((temp_plus * dt) / area_item) + fluxEpsilon;\n" \
+        "temp_minus = ((temp_minus * dt) / area_item) - fluxEpsilon;\n" \
+        "temp_plus = fct_ttf_max[index] / temp_plus;\n" \
+        "temp_minus = fct_ttf_min[index] / temp_minus;\n" \
+        "<%MIN_BLOCK%>" \
+        "fct_plus[index] = temp_plus;\n" \
+        "fct_minus[index] = temp_minus;\n"
     min_original = "<%FMIN%>(1.0, temp)"
+    min_original_interleave = "temp_plus = <%FMIN%>(1.0, temp_plus);\n" \
+        "temp_minus = <%FMIN%>(1.0, temp_minus);\n"
     min_rewrite = "(1.0 * (1.0 < temp)) + (temp * (1.0 >= temp))"
+    min_rewrite_interleave = "temp_plus = (1.0 * (1.0 < temp_plus)) + (temp_plus * (1.0 >= temp_plus));\n" \
+        "temp_minus = (1.0 * (1.0 < temp_minus)) + (temp_minus * (1.0 >= temp_minus));\n"
     if tuning_parameters["tiling_x"] > 1:
         code = code.replace("<%BLOCK_SIZE%>", str(tuning_parameters["block_size_x"] * tuning_parameters["tiling_x"]))
     else:
@@ -58,11 +74,18 @@ def generate_code(tuning_parameters):
             offset = tuning_parameters["block_size_x"] * tile
             compute = compute + "if ( level + {} < maxNodeLevel )\n{{\n{}}}\n".format(str(offset), compute_block.replace("<%OFFSET%>", str(offset)))
     if tuning_parameters["split_compute"]:
-        compute = compute.replace("<%COMPUTE_MAIN%>", compute_main_split)
-        if tuning_parameters["min_rewrite"]:
-            compute = compute.replace("<%MIN_BLOCK%>", min_rewrite)
+        if tuning_parameters["interleave"]:
+            compute = compute.replace("<%COMPUTE_MAIN%>", compute_main_split_interleave)
+            if tuning_parameters["min_rewrite"]:
+                compute = compute.replace("<%MIN_BLOCK%>", min_rewrite_interleave)
+            else:
+                compute = compute.replace("<%MIN_BLOCK%>", min_original_interleave)
         else:
-            compute = compute.replace("<%MIN_BLOCK%>", min_original)
+            compute = compute.replace("<%COMPUTE_MAIN%>", compute_main_split)
+            if tuning_parameters["min_rewrite"]:
+                compute = compute.replace("<%MIN_BLOCK%>", min_rewrite)
+            else:
+                compute = compute.replace("<%MIN_BLOCK%>", min_original)
     else:
         if tuning_parameters["min_rewrite"]:
             compute = compute.replace("<%COMPUTE_MAIN%>", compute_main_compact_rewrite)
@@ -108,6 +131,7 @@ def tune(nodes, max_levels, max_tile, real_type, quiet=True):
     tuning_parameters["tiling_x"] = [i for i in range(1, max_tile)]
     tuning_parameters["split_compute"] = [False, True]
     tuning_parameters["min_rewrite"] = [False, True]
+    tuning_parameters["interleave"] = [False, True]
     constraints = list()
     constraints.append("block_size_x * tiling_x <= max_levels")
     # Memory allocation and initialization
