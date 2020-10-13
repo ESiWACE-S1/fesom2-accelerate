@@ -137,6 +137,7 @@ def tune(nodes, max_levels, max_tile, real_type, quiet=True):
     tuning_parameters["interleave"] = [False, True]
     constraints = list()
     constraints.append("block_size_x * tiling_x <= max_levels")
+    constraints.append("(not split_compute and not interleave) or split_compute")
     # Memory allocation and initialization
     dt = numpy.random.random()
     flux_epsilon = numpy.random.random()
