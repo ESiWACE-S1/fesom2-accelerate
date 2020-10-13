@@ -63,7 +63,10 @@ def generate_code(tuning_parameters):
     else:
         code = code.replace("<%BLOCK_SIZE%>", str(tuning_parameters["block_size_x"]))
     if tuning_parameters["split_compute"]:
-        code = code.replace("<%TEMP_VAR%>", temp_var)
+        if tuning_parameters["interleave"]:
+            code = code.replace("<%TEMP_VAR%>", temp_interleave)
+        else:
+            code = code.replace("<%TEMP_VAR%>", temp_var)
     else:
         code = code.replace("<%TEMP_VAR%>", "")
     compute = str()
