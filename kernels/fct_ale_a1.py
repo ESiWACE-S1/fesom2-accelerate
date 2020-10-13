@@ -4,6 +4,7 @@ import numpy
 import argparse
 import json
 
+
 def generate_code(tuning_parameters):
     code = \
         "__global__ void fct_ale_a1(const int maxLevels, const <%REAL_TYPE%> * __restrict__ fct_low_order, const <%REAL_TYPE%> * __restrict__ ttf, const int * __restrict__ nLevels, <%REAL_TYPE%> * __restrict__ fct_ttf_max, <%REAL_TYPE%> * __restrict__ fct_ttf_min)\n" \
@@ -47,6 +48,7 @@ def generate_code(tuning_parameters):
     code = code.replace("<%REAL_TYPE%>", tuning_parameters["real_type"])
     return code
 
+
 def reference(nodes, levels, max_levels, fct_low_order, ttf, fct_ttf_max, fct_ttf_min):
     for node in range(0, nodes):
         for level in range(0, levels[node] - 1):
@@ -54,8 +56,8 @@ def reference(nodes, levels, max_levels, fct_low_order, ttf, fct_ttf_max, fct_tt
             fct_ttf_max[item] = max(fct_low_order[item], ttf[item])
             fct_ttf_min[item] = min(fct_low_order[item], ttf[item])
 
+
 def tune(nodes, max_levels, max_tile, real_type, quiet=True):
-    numpy_real_type = None
     if real_type == "float":
         numpy_real_type = numpy.float32
     elif real_type == "double":
@@ -88,12 +90,13 @@ def tune(nodes, max_levels, max_tile, real_type, quiet=True):
     reference(nodes, levels, max_levels, fct_low_order, ttf, fct_ttf_max_control, fct_ttf_min_control)
     arguments_control = [None, None, None, None, fct_ttf_max_control, fct_ttf_min_control]
     # Tuning
-    results, _ = tune_kernel("fct_ale_a1", generate_code, "{} * block_size_x".format(nodes), arguments, tuning_parameters, lang="CUDA", answer=arguments_control, restrictions=constraints, quiet=quiet)
+    tuning_results, _ = tune_kernel("fct_ale_a1", generate_code, "{} * block_size_x".format(nodes), arguments, tuning_parameters, lang="CUDA", answer=arguments_control, restrictions=constraints, quiet=quiet)
     # Memory bandwidth
     memory_bytes = ((nodes * 4) + (used_levels * 4 * numpy.dtype(numpy_real_type).itemsize))
-    for result in results:
+    for result in tuning_results:
         result["memory_bandwidth"] = memory_bytes / (result["time"] / 10**3)
-    return results
+    return tuning_results
+
 
 def parse_command_line():
     parser = argparse.ArgumentParser(description="FESOM2 FCT ALE A1")
@@ -105,10 +108,11 @@ def parse_command_line():
     parser.add_argument("--store", help="Store performance results in a JSON file.", default=False, action="store_true")
     return parser.parse_args()
 
+
 if __name__ == "__main__":
     command_line = parse_command_line()
     results = tune(command_line.nodes, command_line.max_levels, command_line.max_tile, command_line.real_type, command_line.verbose)
-    best_configuration = min(results, key=lambda x : x["time"])
+    best_configuration = min(results, key=lambda x: x["time"])
     print("/* Memory bandwidth: {:.2f} GB/s */".format(best_configuration["memory_bandwidth"] / 10**9))
     print("/* Block size X: {} */".format(best_configuration["block_size_x"]))
     print(generate_code(best_configuration))
