@@ -9,12 +9,11 @@ def generate_code(tuning_parameters):
     code = \
         "__global__ void fct_ale_b1_horizontal(const int maxLevels, const int * __restrict__ nLevels, const int * __restrict__ nodesPerEdge, const int * __restrict__ elementsPerEdge, const <%REAL_TYPE%> * __restrict__ fct_adf_h, <%REAL_TYPE%> * __restrict__ fct_plus, <%REAL_TYPE%> * __restrict__ fct_minus)\n" \
         "{\n" \
-        "<%INT_TYPE%> levelBound = 0;\n" \
-        "const <%INT_TYPE%> nodeOne = (nodesPerEdge[(blockIdx.x * 2)] - 1) * maxLevels;\n" \
-        "const <%INT_TYPE%> nodeTwo = (nodesPerEdge[(blockIdx.x * 2) + 1] - 1) * maxLevels;\n" \
+        "int levelBound = elementsPerEdge[(blockIdx.x * 2) + 1];\n" \
+        "const int nodeOne = (nodesPerEdge[(blockIdx.x * 2)] - 1) * maxLevels;\n" \
+        "const int nodeTwo = (nodesPerEdge[(blockIdx.x * 2) + 1] - 1) * maxLevels;\n" \
         "\n" \
         "/* Compute the upper bound for the level */\n" \
-        "levelBound = elementsPerEdge[(blockIdx.x * 2) + 1];\n" \
         "<%UPPER_BOUND_BLOCK%>" \
         "/* Compute fct_plus and fct_minus */\n" \
         "for ( <%INT_TYPE%> level = threadIdx.x; level < levelBound - 1; level += <%BLOCK_SIZE%> )\n" \
