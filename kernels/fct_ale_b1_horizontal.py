@@ -33,7 +33,7 @@ def generate_code(tuning_parameters):
         "levelBound = max(nLevels[(elementsPerEdge[(blockIdx.x * 2)]) - 1], 0);\n" \
         "}\n"
     upper_bound_branch_rewrite = \
-        "(max(nLevels[(elementsPerEdge[(blockIdx.x * 2)]) - 1], nLevels[levelBound - 1]) * (levelBound > 0)) + (max(nLevels[(elementsPerEdge[(blockIdx.x * 2)]) - 1], 0) * (levelBound <= 0));\n"
+        "levelBound = (max(nLevels[(elementsPerEdge[(blockIdx.x * 2)]) - 1], nLevels[levelBound - 1]) * (levelBound > 0)) + (max(nLevels[(elementsPerEdge[(blockIdx.x * 2)]) - 1], 0) * (levelBound <= 0));\n"
     compute_block = \
         "fct_adf_h_value = fct_adf_h[(blockIdx.x * maxLevels) + level + <%OFFSET%>];\n" \
         "atomicAdd(&(fct_plus[nodeOne + level + <%OFFSET%>]), <%FMAX%>(0.0, fct_adf_h_value));\n" \
