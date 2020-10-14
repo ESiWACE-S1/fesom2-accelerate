@@ -15,14 +15,7 @@ def generate_code(tuning_parameters):
         "\n" \
         "/* Compute the upper bound for the level */\n" \
         "levelBound = elementsPerEdge[(blockIdx.x * 2) + 1];\n" \
-        "if ( levelBound > 0 )\n" \
-        "{\n" \
-        "levelBound = max(nLevels[(elementsPerEdge[(blockIdx.x * 2)]) - 1], nLevels[levelBound - 1]);\n" \
-        "}\n" \
-        "else\n" \
-        "{\n" \
-        "levelBound = max(nLevels[(elementsPerEdge[(blockIdx.x * 2)]) - 1], 0);\n" \
-        "}\n" \
+        "<%UPPER_BOUND_BLOCK%>" \
         "/* Compute fct_plus and fct_minus */\n" \
         "for ( <%INT_TYPE%> level = threadIdx.x; level < levelBound - 1; level += <%BLOCK_SIZE%> )\n" \
         "{\n" \
@@ -30,6 +23,17 @@ def generate_code(tuning_parameters):
         "<%COMPUTE_BLOCK%>" \
         "}\n" \
         "}\n"
+    upper_bound_block = \
+        "if ( levelBound > 0 )\n" \
+        "{\n" \
+        "levelBound = max(nLevels[(elementsPerEdge[(blockIdx.x * 2)]) - 1], nLevels[levelBound - 1]);\n" \
+        "}\n" \
+        "else\n" \
+        "{\n" \
+        "levelBound = max(nLevels[(elementsPerEdge[(blockIdx.x * 2)]) - 1], 0);\n" \
+        "}\n"
+    upper_bound_branch_rewrite = \
+        "(max(nLevels[(elementsPerEdge[(blockIdx.x * 2)]) - 1], nLevels[levelBound - 1]) * (levelBound > 0)) + (max(nLevels[(elementsPerEdge[(blockIdx.x * 2)]) - 1], 0) * (levelBound <= 0));\n"
     compute_block = \
         "fct_adf_h_value = fct_adf_h[(blockIdx.x * maxLevels) + level + <%OFFSET%>];\n" \
         "atomicAdd(&(fct_plus[nodeOne + level + <%OFFSET%>]), <%FMAX%>(0.0, fct_adf_h_value));\n" \
@@ -40,6 +44,10 @@ def generate_code(tuning_parameters):
         code = code.replace("<%BLOCK_SIZE%>", str(tuning_parameters["block_size_x"] * tuning_parameters["tiling_x"]))
     else:
         code = code.replace("<%BLOCK_SIZE%>", str(tuning_parameters["block_size_x"]))
+    if tuning_parameters["branch_rewrite"]:
+        code = code.replace("<%UPPER_BOUND_BLOCK%>", upper_bound_branch_rewrite)
+    else:
+        code = code.replace("<%UPPER_BOUND_BLOCK%>", upper_bound_block)
     compute = str()
     for tile in range(0, tuning_parameters["tiling_x"]):
         if tile == 0:
@@ -104,6 +112,7 @@ def tune(nodes, edges, elements, max_levels, max_tile, real_type, quiet=True):
     tuning_parameters["max_levels"] = [str(max_levels)]
     tuning_parameters["block_size_x"] = [32 * i for i in range(1, 33)]
     tuning_parameters["tiling_x"] = [i for i in range(1, max_tile)]
+    tuning_parameters["branch_rewrite"] = [False, True]
     constraints = list()
     constraints.append("block_size_x * tiling_x <= max_levels")
     # Memory allocation and initialization
