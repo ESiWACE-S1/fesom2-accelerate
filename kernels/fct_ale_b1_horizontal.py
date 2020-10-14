@@ -32,8 +32,9 @@ def generate_code(tuning_parameters):
         "levelBound = max(nLevels[(elementsPerEdge[(blockIdx.x * 2)]) - 1], 0);\n" \
         "}\n"
     upper_bound_branch_rewrite = \
-        "int temp = nLevels[(elementsPerEdge[(blockIdx.x * 2)]) - 1];\n" \
-        "levelBound = (max(temp, nLevels[levelBound - 1]) * (levelBound > 0)) + (temp, 0) * (levelBound <= 0));\n"
+        "int temp_00 = nLevels[(elementsPerEdge[(blockIdx.x * 2)]) - 1];\n" \
+        "int temp_01 = nLevels[levelBound - 1];\n" \
+        "levelBound = (((temp_00 * (temp_00 > temp_01)) + (temp_01 * (temp_01 >= temp_00))) * (levelBound > 0)) + ((temp_00 * (temp_00 > 0)) * (levelBound <= 0));\n"
     compute_block = \
         "fct_adf_h_value = fct_adf_h[(blockIdx.x * maxLevels) + level + <%OFFSET%>];\n" \
         "atomicAdd(&(fct_plus[nodeOne + level + <%OFFSET%>]), <%FMAX%>(0.0, fct_adf_h_value));\n" \
