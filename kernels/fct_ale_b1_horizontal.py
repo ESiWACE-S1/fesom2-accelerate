@@ -4,6 +4,7 @@ import numpy
 import argparse
 import json
 
+
 def generate_code(tuning_parameters):
     code = \
         "__global__ void fct_ale_b1_horizontal(const int maxLevels, const int * __restrict__ nLevels, const int * __restrict__ nodesPerEdge, const int * __restrict__ elementsPerEdge, const <%REAL_TYPE%> * __restrict__ fct_adf_h, <%REAL_TYPE%> * __restrict__ fct_plus, <%REAL_TYPE%> * __restrict__ fct_minus)\n" \
@@ -59,8 +60,8 @@ def generate_code(tuning_parameters):
     code = code.replace("<%REAL_TYPE%>", tuning_parameters["real_type"])
     return code
 
+
 def reference(edges, nodes_per_edge, elements_per_edge, levels, max_levels, fct_adf_h, fct_plus, fct_minus, real_type):
-    numpy_real_type = None
     if real_type == "float":
         numpy_real_type = numpy.float32
     elif real_type == "double":
@@ -88,8 +89,8 @@ def reference(edges, nodes_per_edge, elements_per_edge, levels, max_levels, fct_
             fct_minus[(node_two * max_levels) + level] = fct_minus[(node_two * max_levels) + level] + min(0.0, -fct_adf_h[(edge * max_levels) + level])
     return memory_bytes
 
+
 def tune(nodes, edges, elements, max_levels, max_tile, real_type, quiet=True):
-    numpy_real_type = None
     if real_type == "float":
         numpy_real_type = numpy.float32
     elif real_type == "double":
@@ -126,11 +127,12 @@ def tune(nodes, edges, elements, max_levels, max_tile, real_type, quiet=True):
     memory_bytes = reference(edges, nodes_per_edge, elements_per_edge, levels, max_levels, fct_adf_h, fct_plus_control, fct_minus_control, real_type)
     arguments_control = [None, None, None, None, None, fct_plus_control, fct_minus_control]
     # Tuning
-    results, _ = tune_kernel("fct_ale_b1_horizontal", generate_code, "{} * block_size_x".format(edges), arguments, tuning_parameters, lang="CUDA", answer=arguments_control, restrictions=constraints, quiet=quiet)
+    tuning_results, _ = tune_kernel("fct_ale_b1_horizontal", generate_code, "{} * block_size_x".format(edges), arguments, tuning_parameters, lang="CUDA", answer=arguments_control, restrictions=constraints, quiet=quiet)
     # Memory bandwidth
-    for result in results:
+    for result in tuning_results:
         result["memory_bandwidth"] = memory_bytes / (result["time"] / 10**3)
-    return results
+    return tuning_results
+
 
 def parse_command_line():
     parser = argparse.ArgumentParser(description="FESOM2 FCT ALE B1 HORIZONTAL")
@@ -144,10 +146,11 @@ def parse_command_line():
     parser.add_argument("--store", help="Store performance results in a JSON file.", default=False, action="store_true")
     return parser.parse_args()
 
+
 if __name__ == "__main__":
     command_line = parse_command_line()
     results = tune(command_line.nodes, command_line.edges, command_line.elements, command_line.max_levels, command_line.max_tile, command_line.real_type, command_line.verbose)
-    best_configuration = min(results, key=lambda x : x["time"])
+    best_configuration = min(results, key=lambda x: x["time"])
     print("/* Memory bandwidth: {:.2f} GB/s */".format(best_configuration["memory_bandwidth"] / 10**9))
     print("/* Block size X: {} */".format(best_configuration["block_size_x"]))
     print(generate_code(best_configuration))
