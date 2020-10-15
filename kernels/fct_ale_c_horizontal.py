@@ -4,6 +4,7 @@ import numpy
 import argparse
 import json
 
+
 def generate_code(tuning_parameters):
     code = \
         "__global__ void fct_ale_c_horizontal(const int maxLevels, const int * __restrict__ nLevels, const int * __restrict__ nodesPerEdge, const int * __restrict__ elementsPerEdge, <%REAL_TYPE%> * __restrict__ del_ttf_advhoriz, const <%REAL_TYPE%> * __restrict__ fct_adf_h, const <%REAL_TYPE%> dt, const <%REAL_TYPE%> * __restrict__ area)\n" \
@@ -50,6 +51,7 @@ def generate_code(tuning_parameters):
     code = code.replace("<%REAL_TYPE%>", tuning_parameters["real_type"])
     return code
 
+
 def reference(edges, nodes_per_edge, elements_per_edge, levels, max_levels, del_ttf_advhoriz, fct_adf_h, dt, area, numpy_real_type):
     memory_bytes = 0
     for edge in range(0, edges):
@@ -59,7 +61,7 @@ def reference(edges, nodes_per_edge, elements_per_edge, levels, max_levels, del_
         element_one = elements_per_edge[edge * 2] - 1
         element_two = elements_per_edge[(edge * 2) + 1] - 1
         if element_two < 0:
-            memory_bytes = memory_bytes + (4)
+            memory_bytes = memory_bytes + 4
             number_levels = max(levels[element_one], 0)
         else:
             memory_bytes = memory_bytes + (2 * 4)
@@ -70,8 +72,8 @@ def reference(edges, nodes_per_edge, elements_per_edge, levels, max_levels, del_
             del_ttf_advhoriz[(node_two * max_levels) + level] = del_ttf_advhoriz[(node_two * max_levels) + level] - (fct_adf_h[(edge * max_levels) + level] * (dt / area[(node_two * max_levels) + level]))
     return memory_bytes
 
+
 def tune(nodes, edges, elements, max_levels, max_tile, real_type, quiet=True):
-    numpy_real_type = None
     if real_type == "float":
         numpy_real_type = numpy.float32
     elif real_type == "double":
@@ -113,11 +115,12 @@ def tune(nodes, edges, elements, max_levels, max_tile, real_type, quiet=True):
     memory_bytes = reference(edges, nodes_per_edge, elements_per_edge, levels, max_levels, del_ttf_advhoriz_control, fct_adf_h, dt, area, numpy_real_type)
     arguments_control = [None, None, None, None, del_ttf_advhoriz_control, None, None, None]
     # Tuning
-    results, _ = tune_kernel("fct_ale_c_horizontal", generate_code, "{} * block_size_x".format(edges), arguments, tuning_parameters, lang="CUDA", answer=arguments_control, restrictions=constraints, quiet=quiet, atol=1e-03)
+    tuning_results, _ = tune_kernel("fct_ale_c_horizontal", generate_code, "{} * block_size_x".format(edges), arguments, tuning_parameters, lang="CUDA", answer=arguments_control, restrictions=constraints, quiet=quiet, atol=1e-03)
     # Memory bandwidth
-    for result in results:
+    for result in tuning_results:
         result["memory_bandwidth"] = memory_bytes / (result["time"] / 10**3)
-    return results
+    return tuning_results
+
 
 def parse_command_line():
     parser = argparse.ArgumentParser(description="FESOM2 FCT ALE C HORIZONTAL")
@@ -131,10 +134,11 @@ def parse_command_line():
     parser.add_argument("--store", help="Store performance results in a JSON file.", default=False, action="store_true")
     return parser.parse_args()
 
+
 if __name__ == "__main__":
     command_line = parse_command_line()
     results = tune(command_line.nodes, command_line.edges, command_line.elements, command_line.max_levels, command_line.max_tile, command_line.real_type, command_line.verbose)
-    best_configuration = min(results, key=lambda x : x["time"])
+    best_configuration = min(results, key=lambda x: x["time"])
     print("/* Memory bandwidth: {:.2f} GB/s */".format(best_configuration["memory_bandwidth"] / 10**9))
     print("/* Block size X: {} */".format(best_configuration["block_size_x"]))
     print(generate_code(best_configuration))
