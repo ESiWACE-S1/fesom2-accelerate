@@ -4,6 +4,7 @@ import numpy
 import argparse
 import json
 
+
 def generate_code(tuning_parameters):
     code = \
         "__global__ void fct_ale_b3_vertical(const int maxLevels, const int * __restrict__ nLevels, <%REAL_TYPE%> * __restrict__ fct_adf_v, const <%REAL_TYPE%> * __restrict__ fct_plus, const <%REAL_TYPE%> * __restrict__ fct_minus)\n" \
@@ -75,6 +76,7 @@ def generate_code(tuning_parameters):
     code = code.replace("<%INT_TYPE%>", tuning_parameters["int_type"].replace("_", " "))
     code = code.replace("<%REAL_TYPE%>", tuning_parameters["real_type"])
     return code
+
 
 def generate_code_shared(tuning_parameters):
     code = \
@@ -160,6 +162,7 @@ def generate_code_shared(tuning_parameters):
     code = code.replace("<%REAL_TYPE%>", tuning_parameters["real_type"])
     return code
 
+
 def reference(nodes, levels, max_levels, fct_adf_v, fct_plus, fct_minus):
     for node in range(0, nodes):
         ae = 1.0
@@ -180,8 +183,8 @@ def reference(nodes, levels, max_levels, fct_adf_v, fct_plus, fct_minus):
                 ae = min(ae, fct_minus[(node * max_levels) + level])
             fct_adf_v[(node * max_levels) + level] = ae * fct_adf_v[(node * max_levels) + level]
 
+
 def tune(nodes, max_levels, max_tile, real_type, quiet=True):
-    numpy_real_type = None
     if real_type == "float":
         numpy_real_type = numpy.float32
     elif real_type == "double":
@@ -214,10 +217,10 @@ def tune(nodes, max_levels, max_tile, real_type, quiet=True):
     reference(nodes, levels, max_levels, fct_adf_v_control, fct_plus, fct_minus)
     arguments_control = [None, None, fct_adf_v_control, None, None]
     # Tuning
-    results, _ = tune_kernel("fct_ale_b3_vertical", generate_code, "{} * block_size_x".format(nodes), arguments, tuning_parameters, lang="CUDA", answer=arguments_control, restrictions=constraints, quiet=quiet)
+    tuning_results, _ = tune_kernel("fct_ale_b3_vertical", generate_code, "{} * block_size_x".format(nodes), arguments, tuning_parameters, lang="CUDA", answer=arguments_control, restrictions=constraints, quiet=quiet)
     # Memory bandwidth
     memory_bytes = ((nodes * 4) + (nodes * 3 * numpy.dtype(numpy_real_type).itemsize) + (used_levels * 6 * numpy.dtype(numpy_real_type).itemsize))
-    for result in results:
+    for result in tuning_results:
         result["memory_bandwidth"] = memory_bytes / (result["time"] / 10**3)
     # Shared memory version
     shared_memory_args = dict()
@@ -229,7 +232,8 @@ def tune(nodes, max_levels, max_tile, real_type, quiet=True):
     memory_bytes = ((nodes * 4) + (nodes * 3 * numpy.dtype(numpy_real_type).itemsize) + (used_levels * 3 * numpy.dtype(numpy_real_type).itemsize))
     for result in results_shared:
         result["memory_bandwidth"] = memory_bytes / (result["time"] / 10**3)
-    return results + results_shared
+    return tuning_results + results_shared
+
 
 def parse_command_line():
     parser = argparse.ArgumentParser(description="FESOM2 FCT ALE B3 VERTICAL")
@@ -241,10 +245,11 @@ def parse_command_line():
     parser.add_argument("--store", help="Store performance results in a JSON file.", default=False, action="store_true")
     return parser.parse_args()
 
+
 if __name__ == "__main__":
     command_line = parse_command_line()
     results = tune(command_line.nodes, command_line.max_levels, command_line.max_tile, command_line.real_type, command_line.verbose)
-    best_configuration = min(results, key=lambda x : x["time"])
+    best_configuration = min(results, key=lambda x: x["time"])
     print("/* Memory bandwidth: {:.2f} GB/s */".format(best_configuration["memory_bandwidth"] / 10**9))
     print("/* Block size X: {} */".format(best_configuration["block_size_x"]))
     if best_configuration["shared_memory"]:
