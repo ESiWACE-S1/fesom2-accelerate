@@ -38,9 +38,15 @@ def generate_code(tuning_parameters):
     compute_block = \
         "fct_adf_h_value = fct_adf_h[(blockIdx.x * maxLevels) + level + <%OFFSET%>];\n" \
         "atomicAdd(&(fct_plus[nodeOne + level + <%OFFSET%>]), <%FMAX%>(0.0, fct_adf_h_value));\n" \
-        "atomicAdd(&(fct_minus[nodeOne + level + <%OFFSET%>]), <%FMIN%>(0.0, fct_adf_h_value));\n" \
         "atomicAdd(&(fct_plus[nodeTwo + level + <%OFFSET%>]), <%FMAX%>(0.0, -fct_adf_h_value));\n" \
+        "atomicAdd(&(fct_minus[nodeOne + level + <%OFFSET%>]), <%FMIN%>(0.0, fct_adf_h_value));\n" \
         "atomicAdd(&(fct_minus[nodeTwo + level + <%OFFSET%>]), <%FMIN%>(0.0, -fct_adf_h_value));\n"
+    compute_block_rewrite = \
+        "fct_adf_h_value = fct_adf_h[(blockIdx.x * maxLevels) + level + <%OFFSET%>];\n" \
+        "atomicAdd(&(fct_plus[nodeOne + level + <%OFFSET%>]), fct_adf_h_value * (fct_adf_h_value > 0));\n" \
+        "atomicAdd(&(fct_plus[nodeTwo + level + <%OFFSET%>]), -fct_adf_h_value * (-fct_adf_h_value > 0));\n" \
+        "atomicAdd(&(fct_minus[nodeOne + level + <%OFFSET%>]), fct_adf_h_value * (fct_adf_h_value < 0));\n" \
+        "atomicAdd(&(fct_minus[nodeTwo + level + <%OFFSET%>]), -fct_adf_h_value * (-fct_adf_h_value < 0));\n"
     if tuning_parameters["tiling_x"] > 1:
         code = code.replace("<%BLOCK_SIZE%>", str(tuning_parameters["block_size_x"] * tuning_parameters["tiling_x"]))
     else:
@@ -52,10 +58,16 @@ def generate_code(tuning_parameters):
     compute = str()
     for tile in range(0, tuning_parameters["tiling_x"]):
         if tile == 0:
-            compute = compute + compute_block.replace(" + <%OFFSET%>", "")
+            if tuning_parameters["compute_rewrite"]:
+                compute = compute + compute_block_rewrite.replace(" + <%OFFSET%>", "")
+            else:
+                compute = compute + compute_block.replace(" + <%OFFSET%>", "")
         else:
             offset = tuning_parameters["block_size_x"] * tile
-            compute = compute + "if ( level + {} < levelBound - 1 )\n{{\n{}}}\n".format(str(offset), compute_block.replace("<%OFFSET%>", str(offset)))
+            if tuning_parameters["compute_rewrite"]:
+                compute = compute + "if ( level + {} < levelBound - 1 )\n{{\n{}}}\n".format(str(offset), compute_block_rewrite.replace("<%OFFSET%>", str(offset)))
+            else:
+                compute = compute + "if ( level + {} < levelBound - 1 )\n{{\n{}}}\n".format(str(offset), compute_block.replace("<%OFFSET%>", str(offset)))
     code = code.replace("<%COMPUTE_BLOCK%>", compute)
     if tuning_parameters["real_type"] == "float":
         code = code.replace("<%FMAX%>", "fmaxf")
@@ -114,6 +126,7 @@ def tune(nodes, edges, elements, max_levels, max_tile, real_type, quiet=True):
     tuning_parameters["block_size_x"] = [32 * i for i in range(1, 33)]
     tuning_parameters["tiling_x"] = [i for i in range(1, max_tile)]
     tuning_parameters["branch_rewrite"] = [False, True]
+    tuning_parameters["compute_rewrite"] = [False, True]
     constraints = list()
     constraints.append("block_size_x * tiling_x <= max_levels")
     # Memory allocation and initialization
