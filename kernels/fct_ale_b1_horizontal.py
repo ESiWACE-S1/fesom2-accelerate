@@ -125,6 +125,8 @@ def tune(nodes, edges, elements, max_levels, max_tile, real_type, quiet=True):
     tuning_parameters["max_levels"] = [str(max_levels)]
     tuning_parameters["block_size_x"] = [32 * i for i in range(1, 33)]
     tuning_parameters["tiling_x"] = [i for i in range(1, max_tile)]
+    if (max_levels <= 1024) and (max_levels not in tuning_parameters["block_size_x"]):
+        tuning_parameters["block_size_x"].append(max_levels)
     tuning_parameters["branch_rewrite"] = [False, True]
     tuning_parameters["compute_rewrite"] = [False, True]
     constraints = list()
