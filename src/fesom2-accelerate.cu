@@ -174,12 +174,26 @@ void set_mpi_rank_(int* rank, int* total_ranks)
         std::cerr<<"No CUDA devices found on node where rank "<<(*rank)<<" runs!"<<std::endl;
         return;
     }
-    device_id = rank_on_node % count;
+    int device_id = rank_on_node % count;
     status = cudaSetDevice(device_id);
     if ( !errorHandling(status) )
     {
         std::cerr<<"Error in setting device id to"<<device_id<<std::endl;
         return;
+    }
+}
+
+inline void transfer_back(void* memory, const std::string& variable, int* state)
+{
+    if(*state == 0)
+    {
+        return;
+    }
+    bool status =  transferToHost(*static_cast<gpuMemory*>(memory));
+    if ( !status )
+    {
+        std::cerr<<"Error in transfer "<<variable<<" to host"<<std::endl;
+        *state = 0;
     }
 }
 
@@ -258,18 +272,4 @@ void fct_ale_pre_comm_acc_( int* alg_state, int* mpi_rank, void** fct_ttf_max, v
     *alg_state = 6;
     transfer_back(*fct_plus, "fct_plus", alg_state);
     transfer_back(*fct_minus, "fct_minus", alg_state);
-}
-
-void transfer_back(void* memory, const std::string& variable, int* state)
-{
-    if(*state == 0)
-    {
-        return;
-    }
-    bool status =  transferToHost(*static_cast<gpuMemory*>(memory));
-    if ( !status )
-    {
-        std::cerr<<"Error in transfer "<<variable<<" to host"<<std::endl;
-        *state = 0;
-    }
 }
