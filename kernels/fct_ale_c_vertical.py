@@ -4,6 +4,7 @@ import numpy
 import argparse
 import json
 
+
 def generate_code(tuning_parameters):
     code = \
         "__global__ void fct_ale_c_vertical(const int maxLevels, const int * __restrict__ nLevels, <%REAL_TYPE%> * __restrict__ del_ttf_advvert, const <%REAL_TYPE%> * __restrict__ ttf, const <%REAL_TYPE%> * __restrict__ hnode, const <%REAL_TYPE%> * __restrict__ fct_LO, const <%REAL_TYPE%> * __restrict__ hnode_new, const <%REAL_TYPE%> * __restrict__ fct_adf_v, const <%REAL_TYPE%> dt, const <%REAL_TYPE%> * __restrict__ area)\n" \
@@ -38,13 +39,14 @@ def generate_code(tuning_parameters):
     code = code.replace("<%REAL_TYPE%>", tuning_parameters["real_type"])
     return code
 
-def reference(nodes, levels, max_levels, del_ttf_advvert, ttf, hnode, fct_LO, hnode_new, fct_adf_v, dt, area):
+
+def reference(nodes, levels, max_levels, del_ttf_advvert, ttf, hnode, fct_lo, hnode_new, fct_adf_v, dt, area):
     for node in range(0, nodes):
         for level in range(0, levels[node] - 1):
-            del_ttf_advvert[(node * max_levels) + level] = del_ttf_advvert[(node * max_levels) + level] - (ttf[(node * max_levels) + level] * hnode[(node * max_levels) + level]) + (fct_LO[(node * max_levels) + level] * hnode_new[(node * max_levels) + level]) + ((fct_adf_v[(node * max_levels) + level] - fct_adf_v[(node * max_levels) + (level + 1)]) * (dt / area[(node * max_levels) + level]))
+            del_ttf_advvert[(node * max_levels) + level] = del_ttf_advvert[(node * max_levels) + level] - (ttf[(node * max_levels) + level] * hnode[(node * max_levels) + level]) + (fct_lo[(node * max_levels) + level] * hnode_new[(node * max_levels) + level]) + ((fct_adf_v[(node * max_levels) + level] - fct_adf_v[(node * max_levels) + (level + 1)]) * (dt / area[(node * max_levels) + level]))
+
 
 def tune(nodes, max_levels, max_tile, real_type, quiet=True):
-    numpy_real_type = None
     if real_type == "float":
         numpy_real_type = numpy.float32
     elif real_type == "double":
@@ -65,7 +67,7 @@ def tune(nodes, max_levels, max_tile, real_type, quiet=True):
     del_ttf_advvert_control = numpy.copy(del_ttf_advvert)
     ttf = numpy.random.randn(nodes * max_levels).astype(numpy_real_type)
     hnode = numpy.random.randn(nodes * max_levels).astype(numpy_real_type)
-    fct_LO = numpy.random.randn(nodes * max_levels).astype(numpy_real_type)
+    fct_lo = numpy.random.randn(nodes * max_levels).astype(numpy_real_type)
     hnode_new = numpy.random.randn(nodes * max_levels).astype(numpy_real_type)
     fct_adf_v = numpy.random.randn(nodes * max_levels).astype(numpy_real_type)
     area = numpy.random.randn(nodes * max_levels).astype(numpy_real_type)
@@ -76,21 +78,22 @@ def tune(nodes, max_levels, max_tile, real_type, quiet=True):
         levels[node] = numpy.random.randint(3, max_levels)
         used_levels = used_levels + (levels[node] - 1)
     if real_type == "float":
-        arguments = [numpy.int32(max_levels), levels, del_ttf_advvert, ttf, hnode, fct_LO, hnode_new, fct_adf_v, numpy.float32(dt), area]
+        arguments = [numpy.int32(max_levels), levels, del_ttf_advvert, ttf, hnode, fct_lo, hnode_new, fct_adf_v, numpy.float32(dt), area]
     elif real_type == "double":
-        arguments = [numpy.int32(max_levels), levels, del_ttf_advvert, ttf, hnode, fct_LO, hnode_new, fct_adf_v, numpy.float64(dt), area]
+        arguments = [numpy.int32(max_levels), levels, del_ttf_advvert, ttf, hnode, fct_lo, hnode_new, fct_adf_v, numpy.float64(dt), area]
     else:
         raise ValueError
     # Reference
-    reference(nodes, levels, max_levels, del_ttf_advvert_control, ttf, hnode, fct_LO, hnode_new, fct_adf_v, dt, area)
+    reference(nodes, levels, max_levels, del_ttf_advvert_control, ttf, hnode, fct_lo, hnode_new, fct_adf_v, dt, area)
     arguments_control = [None, None, del_ttf_advvert_control, None, None, None, None, None, None, None]
     # Tuning
-    results, _ = tune_kernel("fct_ale_c_vertical", generate_code, "{} * block_size_x".format(nodes), arguments, tuning_parameters, lang="CUDA", answer=arguments_control, restrictions=constraints, quiet=quiet)
+    tuning_results, _ = tune_kernel("fct_ale_c_vertical", generate_code, "{} * block_size_x".format(nodes), arguments, tuning_parameters, lang="CUDA", answer=arguments_control, restrictions=constraints, quiet=quiet)
     # Memory bandwidth
     memory_bytes = (nodes * 4) + (used_levels * 9 * numpy.dtype(numpy_real_type).itemsize)
-    for result in results:
+    for result in tuning_results:
         result["memory_bandwidth"] = memory_bytes / (result["time"] / 10**3)
-    return results
+    return tuning_results
+
 
 def parse_command_line():
     parser = argparse.ArgumentParser(description="FESOM2 FCT ALE C VERTICAL")
@@ -102,10 +105,11 @@ def parse_command_line():
     parser.add_argument("--store", help="Store performance results in a JSON file.", default=False, action="store_true")
     return parser.parse_args()
 
+
 if __name__ == "__main__":
     command_line = parse_command_line()
     results = tune(command_line.nodes, command_line.max_levels, command_line.max_tile, command_line.real_type, command_line.verbose)
-    best_configuration = min(results, key=lambda x : x["time"])
+    best_configuration = min(results, key=lambda x: x["time"])
     print("/* Memory bandwidth: {:.2f} GB/s */".format(best_configuration["memory_bandwidth"] / 10**9))
     print("/* Block size X: {} */".format(best_configuration["block_size_x"]))
     print(generate_code(best_configuration))
