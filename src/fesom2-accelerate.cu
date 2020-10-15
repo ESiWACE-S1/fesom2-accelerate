@@ -159,9 +159,32 @@ std::ostream& operator << (std::ostream& os, const gpuMemory& gpumem)
     return os;
 }
 
-//#define SINGLE_KERNEL
+void set_mpi_rank_(int* rank, int* total_ranks)
+{
+    int rank_on_node = (*rank) % (*total_ranks);
+    int count = 1;
+    cudaError_t status = cudaGetDeviceCount(&count);
+    if ( !errorHandling(status) )
+    {
+        std::cerr<<"Error in getting number of CUDA devices"<<std::endl;
+        return;
+    }
+    if ( count < 1)
+    {
+        std::cerr<<"No CUDA devices found on node where rank "<<(*rank)<<" runs!"<<std::endl;
+        return;
+    }
+    device_id = rank_on_node % count;
+    status = cudaSetDevice(device_id);
+    if ( !errorHandling(status) )
+    {
+        std::cerr<<"Error in setting device id to"<<device_id<<std::endl;
+        return;
+    }
+}
 
-void fct_ale_pre_comm_acc_( int* alg_state, void** fct_ttf_max, void**  fct_ttf_min, void**  fct_plus, void**  fct_minus, void** ttf, void** fct_LO, void**  fct_adf_v, void** fct_adf_h, void** UV_rhs, void** area_inv, int* myDim_nod2D, int* eDim_nod2D, int* myDim_elem2D, int* myDim_edge2D, int* nl, void** nlevels_nod2D, void** nlevels_elem2D, void** elem2D_nodes, void** nod_in_elem2D_num, void** nod_in_elem2D, int* nod_in_elem2D_dim, void** nod2D_edges, void** elem2D_edges, int* vlimit, real_type* flux_eps, real_type* bignumber, real_type* dt)
+#define NUM_KERNELS 6
+void fct_ale_pre_comm_acc_( int* alg_state, int* mpi_rank, void** fct_ttf_max, void**  fct_ttf_min, void**  fct_plus, void**  fct_minus, void** ttf, void** fct_LO, void**  fct_adf_v, void** fct_adf_h, void** UV_rhs, void** area_inv, int* myDim_nod2D, int* eDim_nod2D, int* myDim_elem2D, int* myDim_edge2D, int* nl, void** nlevels_nod2D, void** nlevels_elem2D, void** elem2D_nodes, void** nod_in_elem2D_num, void** nod_in_elem2D, int* nod_in_elem2D_dim, void** nod2D_edges, void** elem2D_edges, int* vlimit, real_type* flux_eps, real_type* bignumber, real_type* dt)
 {
     *alg_state = 0;
     bool status = true;
@@ -196,36 +219,57 @@ void fct_ale_pre_comm_acc_( int* alg_state, void** fct_ttf_max, void**  fct_ttf_
     real_type* fct_plus_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(*fct_plus)->device_pointer);
     real_type* fct_min_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(*fct_minus)->device_pointer);
     real_type* area_inv_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(*area_inv)->device_pointer);
-#ifdef SINGLE_KERNEL
-    fct_ale_pre_comm<<< dim3(nNodes), dim3(32), 2 * maxLevels * sizeof(real_type) >>>(maxLevels, *myDim_nod2D, maxnElems, nlevels_nod2D_dev, nlevels_elem2D_dev, node_elems_dev, node_num_elems_dev, elem2D_nodes_dev, fct_lo_dev, ttf_dev, fct_adf_v_dev, nullptr, UV_rhs_dev, fct_ttf_max_dev, fct_ttf_min_dev, fct_plus_dev, fct_min_dev, *bignumber);
-    *alg_state = 4;
-#else
+
     fct_ale_a1<<< dim3(nNodes), dim3(32) >>>(maxLevels, fct_lo_dev, ttf_dev, nlevels_nod2D_dev, fct_ttf_max_dev, fct_ttf_min_dev);
+#if NUM_KERNELS < 2
     *alg_state = 1;
+    transfer_back(*fct_ttf_max, "fct_ttf_max", alg_state);
+    transfer_back(*fct_ttf_min, "fct_ttf_min", alg_state);
+    return;
+#endif
     fct_ale_a2<<< dim3(*myDim_elem2D), dim3(32) >>>(maxLevels, nlevels_elem2D_dev, elem2D_nodes_dev, UV_rhs_dev2, fct_ttf_max_dev, fct_ttf_min_dev);
+#if NUM_KERNELS < 3
     *alg_state = 2;
+    transfer_back(*UV_rhs, "UV_rhs", alg_state);
+    return;
+#endif
     fct_ale_a3<<< dim3(*myDim_nod2D), dim3(32), 2 * maxLevels * sizeof(real_type) >>>(maxLevels, maxnElems, nlevels_nod2D_dev, node_elems_dev, node_num_elems_dev, UV_rhs_dev2, fct_ttf_max_dev, fct_ttf_min_dev, fct_lo_dev);
+#if NUM_KERNELS < 4
     *alg_state = 3;
+    transfer_back(*fct_ttf_max, "fct_ttf_max", alg_state);
+    transfer_back(*fct_ttf_min, "fct_ttf_min", alg_state);
+    return;
+#endif
     fct_ale_b1_vertical<<< dim3(*myDim_nod2D), dim3(32) >>>(maxLevels, nlevels_nod2D_dev, fct_adf_v_dev, fct_plus_dev, fct_min_dev);
+#if NUM_KERNELS < 5
     *alg_state = 4;
+    transfer_back(*fct_plus, "fct_plus", alg_state);
+    transfer_back(*fct_minus, "fct_minus", alg_state);
+    return;
+#endif
     fct_ale_b1_horizontal<<< dim3(*myDim_nod2D), dim3(32) >>>(maxLevels, nlevels_elem2D_dev, nod2D_edges_dev, elem2D_edges_dev, fct_adf_h_dev, fct_plus_dev, fct_min_dev);
-    *alg_state = 5;
+#if NUM_KERNELS < 6
+    *alg_state = 4;
+    transfer_back(*fct_plus, "fct_plus", alg_state);
+    transfer_back(*fct_minus, "fct_minus", alg_state);
+    return;
+#endif
     fct_ale_b2<<< dim3(*myDim_nod2D), dim3(32) >>>(maxLevels, *dt, *flux_eps, nlevels_nod2D_dev, area_inv_dev, fct_ttf_max_dev, fct_ttf_min_dev, fct_plus_dev, fct_ttf_min_dev);
     *alg_state = 6;
-#endif
+    transfer_back(*fct_plus, "fct_plus", alg_state);
+    transfer_back(*fct_minus, "fct_minus", alg_state);
+}
 
-    status = transferToHost(*static_cast<gpuMemory*>(*fct_plus));
-    if ( !status )
+void transfer_back(void* memory, const std::string& variable, int* state)
+{
+    if(*state == 0)
     {
-        std::cerr<<"Error in transfer of fct_plus to host"<<std::endl;
-        *alg_state = 0;
         return;
     }
-    status =  transferToHost(*static_cast<gpuMemory*>(*fct_minus));
-    {
+    bool status =  transferToHost(*static_cast<gpuMemory*>(memory));
     if ( !status )
-        std::cerr<<"Error in transfer of fct_minus to host"<<std::endl;
-        *alg_state = 0;
-        return;
+    {
+        std::cerr<<"Error in transfer "<<variable<<" to host"<<std::endl;
+        *state = 0;
     }
 }
