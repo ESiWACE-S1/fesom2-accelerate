@@ -244,6 +244,8 @@ void fct_ale_pre_comm_acc_( int* alg_state, void** fct_ttf_max, void**  fct_ttf_
     fct_ale_a2<<< dim3(*myDim_elem2D), dim3(32) >>>(maxLevels, nlevels_elem2D_dev, elem2D_nodes_dev, UV_rhs_dev2, fct_ttf_max_dev, fct_ttf_min_dev);
 #if NUM_KERNELS < 3
     *alg_state = 2;
+    transfer_back(*fct_ttf_max, "fct_ttf_max", alg_state);
+    transfer_back(*fct_ttf_min, "fct_ttf_min", alg_state);
     transfer_back(*UV_rhs, "UV_rhs", alg_state);
     return;
 #endif
@@ -257,13 +259,17 @@ void fct_ale_pre_comm_acc_( int* alg_state, void** fct_ttf_max, void**  fct_ttf_
     fct_ale_b1_vertical<<< dim3(*myDim_nod2D), dim3(32) >>>(maxLevels, nlevels_nod2D_dev, fct_adf_v_dev, fct_plus_dev, fct_min_dev);
 #if NUM_KERNELS < 5
     *alg_state = 4;
+    transfer_back(*fct_ttf_max, "fct_ttf_max", alg_state);
+    transfer_back(*fct_ttf_min, "fct_ttf_min", alg_state);
     transfer_back(*fct_plus, "fct_plus", alg_state);
     transfer_back(*fct_minus, "fct_minus", alg_state);
     return;
 #endif
     fct_ale_b1_horizontal<<< dim3(*myDim_nod2D), dim3(32) >>>(maxLevels, nlevels_elem2D_dev, nod2D_edges_dev, elem2D_edges_dev, fct_adf_h_dev, fct_plus_dev, fct_min_dev);
 #if NUM_KERNELS < 6
-    *alg_state = 4;
+    *alg_state = 5;
+    transfer_back(*fct_ttf_max, "fct_ttf_max", alg_state);
+    transfer_back(*fct_ttf_min, "fct_ttf_min", alg_state);
     transfer_back(*fct_plus, "fct_plus", alg_state);
     transfer_back(*fct_minus, "fct_minus", alg_state);
     return;
