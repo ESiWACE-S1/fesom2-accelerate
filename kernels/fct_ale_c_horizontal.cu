@@ -1,3 +1,4 @@
+#include <atomicAddFix.h>
 /* Block size X: 32 */
 __global__ void fct_ale_c_horizontal(const int maxLevels, const int * __restrict__ nLevels, const int * __restrict__ nodesPerEdge, const int * __restrict__ elementsPerEdge, double * __restrict__ del_ttf_advhoriz, const double * __restrict__ fct_adf_h, const double dt, const double * __restrict__ area)
 {
