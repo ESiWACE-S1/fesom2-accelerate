@@ -1,5 +1,4 @@
-#ifndef ATOMIC_ADD_FIX_H_
-#define ATOMIC_ADD_FIX_H_
+#include <atomicAddFix.h>
 #if !defined(__CUDA_ARCH__) || __CUDA_ARCH__ >= 600
 #else
 __device__ double atomicAdd(double* address, double val)
@@ -12,5 +11,4 @@ __device__ double atomicAdd(double* address, double val)
     } while (assumed != old);
     return __longlong_as_double(old);
 }
-#endif
 #endif
