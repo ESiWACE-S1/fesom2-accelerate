@@ -274,7 +274,7 @@ void fct_ale_pre_comm_acc_( int* alg_state, void** fct_ttf_max, void**  fct_ttf_
     transfer_back(*fct_minus, "fct_minus", alg_state);
     return;
 #endif
-    fct_ale_b2<<< dim3(*myDim_nod2D), dim3(32) >>>(maxLevels, *dt, *flux_eps, nlevels_nod2D_dev, area_inv_dev, fct_ttf_max_dev, fct_ttf_min_dev, fct_plus_dev, fct_ttf_min_dev);
+    fct_ale_b2<<< dim3(*myDim_nod2D), dim3(32) >>>(maxLevels, *dt, *flux_eps, nlevels_nod2D_dev, area_inv_dev, fct_ttf_max_dev, fct_ttf_min_dev, fct_plus_dev, fct_min_dev);
     *alg_state = 6;
     transfer_back(*fct_plus, "fct_plus", alg_state);
     transfer_back(*fct_minus, "fct_minus", alg_state);
