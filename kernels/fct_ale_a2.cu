@@ -2,12 +2,12 @@
 __global__ void fct_ale_a2(const int maxLevels, const int * __restrict__ nLevels, const int * __restrict__ elementNodes, double2 * __restrict__ UV_rhs, const double * __restrict__ fct_ttf_max, const double * __restrict__ fct_ttf_min)
 {
 const unsigned int element_index = (blockIdx.x * maxLevels);
-const unsigned int element_node0_index = elementNodes[(blockIdx.x * 3)] * maxLevels;
-const unsigned int element_node1_index = elementNodes[(blockIdx.x * 3) + 1] * maxLevels;
-const unsigned int element_node2_index = elementNodes[(blockIdx.x * 3) + 2] * maxLevels;
-for ( unsigned int level = threadIdx.x; level < maxLevels - 1; level += 32 )
+const unsigned int element_node0_index = (elementNodes[(blockIdx.x * 3)] - 1) * maxLevels;
+const unsigned int element_node1_index = (elementNodes[(blockIdx.x * 3) + 1] - 1) * maxLevels;
+const unsigned int element_node2_index = (elementNodes[(blockIdx.x * 3) + 2] - 1) * maxLevels;
+for ( unsigned int level = threadIdx.x; level < maxLevels + 1; level += 32 )
 {
-if ( level < nLevels[blockIdx.x] )
+if ( level < nLevels[blockIdx.x] - 1 )
 {
 double2 temp = make_double2(0.0, 0.0);
 temp.x = fmax(fct_ttf_max[element_node0_index + level], fct_ttf_max[element_node1_index + level]);

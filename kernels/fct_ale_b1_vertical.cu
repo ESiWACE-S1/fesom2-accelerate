@@ -7,8 +7,9 @@ for ( int level = threadIdx.x; level < nLevels[blockIdx.x] - 1; level += 32 )
 {
     double fct_adf_v_level = 0.0;
     double fct_adf_v_nlevel = 0.0;
-    fct_adf_v_level = fct_adf_v[node + level];
-    fct_adf_v_nlevel = fct_adf_v[node + (level + 1)];
+    int item = blockIdx.x * (maxLevels + 1) + level;
+    fct_adf_v_level = fct_adf_v[item];
+    fct_adf_v_nlevel = fct_adf_v[item + 1];
     fct_plus[node + level] = fmax(0.0, fct_adf_v_level) + fmax(0.0, -fct_adf_v_nlevel);
     fct_minus[node + level] = fmin(0.0, fct_adf_v_level) + fmin(0.0, -fct_adf_v_nlevel);
 }

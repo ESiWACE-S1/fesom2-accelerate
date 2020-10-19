@@ -6,16 +6,16 @@ extern __shared__ double sharedBuffer[];
 double * tvert_max = (double *)(sharedBuffer);
 double * tvert_min = (double *)(&sharedBuffer[maxLevels]);
 /* Compute tvert_max and tvert_min per level */
-for ( int level = threadIdx.x; level < nLevels[blockIdx.x]; level += 32 )
+for ( int level = threadIdx.x; level < nLevels[blockIdx.x] - 1; level += 32 )
 {
     double tvert_max_temp = 0.0;
     double tvert_min_temp = 0.0;
-    item = (elements_in_node[(blockIdx.x * maxElements)] * maxLevels) + (level);
+    item = ((elements_in_node[(blockIdx.x * maxElements)] - 1) * maxLevels) + (level);
     tvert_max_temp = (UV_rhs[item]).x;
     tvert_min_temp = (UV_rhs[item]).y;
     for ( int element = 1; element < number_elements_in_node[blockIdx.x]; element++ )
     {
-        item = (elements_in_node[(blockIdx.x * maxElements) + element] * maxLevels) + (level);
+        item = ((elements_in_node[(blockIdx.x * maxElements) + element] - 1) * maxLevels) + (level);
         tvert_max_temp = fmax(tvert_max_temp, (UV_rhs[item]).x);
         tvert_min_temp = fmin(tvert_min_temp, (UV_rhs[item]).y);
     }
@@ -39,7 +39,7 @@ if ( threadIdx.x == 0 )
 {
     fct_ttf_max[item] = tvert_max[0] - fct_lo[item];
     fct_ttf_min[item] = tvert_min[0] - fct_lo[item];
-    fct_ttf_max[item + (nLevels[blockIdx.x] - 1)] = tvert_max[nLevels[blockIdx.x] - 1] - fct_lo[item + (nLevels[blockIdx.x] - 1)];
-    fct_ttf_min[item + (nLevels[blockIdx.x] - 1)] = tvert_min[nLevels[blockIdx.x] - 1] - fct_lo[item + (nLevels[blockIdx.x] - 1)];
+    fct_ttf_max[item + (nLevels[blockIdx.x] - 2)] = tvert_max[nLevels[blockIdx.x] - 2] - fct_lo[item + (nLevels[blockIdx.x] - 2)];
+    fct_ttf_min[item + (nLevels[blockIdx.x] - 2)] = tvert_min[nLevels[blockIdx.x] - 2] - fct_lo[item + (nLevels[blockIdx.x] - 2)];
 }
 }

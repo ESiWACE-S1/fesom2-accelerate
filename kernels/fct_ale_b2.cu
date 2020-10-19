@@ -3,10 +3,10 @@ __global__ void fct_ale_b2(const int maxLevels, const double dt, const double fl
 {
 int index = 0;
 double area_item = 0;
-for ( int level = threadIdx.x; level < nLevels[blockIdx.x]; level += 32 )
+for ( int level = threadIdx.x; level < nLevels[blockIdx.x] - 1; level += 32 )
 {
     index = (blockIdx.x * maxLevels) + level;
-    area_item = area_inv[index];
+    area_item = area_inv[index + blockIdx.x];
     fct_plus[index] = fmin(1.0, fct_ttf_max[index] / (fct_plus[index] * dt * area_item + fluxEpsilon));
     fct_minus[index] = fmin(1.0, fct_ttf_min[index] / (fct_minus[index] * dt * area_item - fluxEpsilon));
 }
