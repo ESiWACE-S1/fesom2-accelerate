@@ -315,7 +315,7 @@ void fct_ale_post_comm_acc_( int* alg_state, void**  fct_plus, void**  fct_minus
     real_type* fct_plus_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(*fct_plus)->device_pointer);
     real_type* fct_min_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(*fct_minus)->device_pointer);
 
-    fct_ale_b3_horizontal<< dim3(*myDim_edge2D), dim3(32) >>(maxLevels, nlevels_nod2D_dev, nod2D_edges_dev, elem2D_edges_dev, fct_adf_h_dev, fct_plus, fct_minus);
+    fct_ale_b3_horizontal<<< dim3(*myDim_edge2D), dim3(32) >>>(maxLevels, nlevels_nod2D_dev, nod2D_edges_dev, elem2D_edges_dev, fct_adf_h_dev, fct_plus, fct_minus);
     *alg_state = 9;
     transfer_back(*fct_adf_h, "fct_adf_h", alg_state);
 }
