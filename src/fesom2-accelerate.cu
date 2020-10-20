@@ -12,6 +12,7 @@ extern __global__ void fct_ale_b1_horizontal(const int maxLevels, const int * __
 extern __global__ void fct_ale_b2(const int maxLevels, const double dt, const double fluxEpsilon, const int * __restrict__ nLevels, const double * __restrict__ area_inv, const double * __restrict__ fct_ttf_max, const double * __restrict__ fct_ttf_min, double * __restrict__ fct_plus, double * __restrict__ fct_minus);
 extern __global__ void fct_ale_pre_comm(const int max_levels, const int num_nodes, const int max_num_elems, const int * __restrict__ node_levels, const int * __restrict__ elem_levels, const int * __restrict__ node_elems, const int * __restrict__ node_num_elems, const int * __restrict__ elem_nodes, const double * __restrict__ fct_low_order, const double * __restrict__ ttf, const double * __restrict__ fct_adf_v, const double * __restrict__ fct_adf_h, double * __restrict__ UVrhs, double * __restrict__ fct_ttf_max, double * __restrict__ fct_ttf_min, double * __restrict__ fct_plus, double * __restrict__ fct_minus, const double bignr);
 extern __global__ void fct_ale_b3_vertical(const int maxLevels, const int * __restrict__ nLevels, double * __restrict__ fct_adf_v, const double * __restrict__ fct_plus, const double * __restrict__ fct_minus);
+extern __global__ void fct_ale_b3_horizontal(const int maxLevels, const int * __restrict__ nLevels, const int * __restrict__ nodesPerEdge, const int * __restrict__ elementsPerEdge, double * __restrict__ fct_adf_h, const double * __restrict__ fct_plus, const double * __restrict__ fct_minus)
 
 struct gpuMemory * allocate(void * hostMemory, std::size_t size)
 {
@@ -198,9 +199,13 @@ inline void transfer_back(void* memory, const std::string& variable, int* state)
     }
 }
 
-#define NUM_KERNELS 6
+#define NUM_KERNELS 100
+
 void fct_ale_pre_comm_acc_( int* alg_state, void** fct_ttf_max, void**  fct_ttf_min, void**  fct_plus, void**  fct_minus, void** ttf, void** fct_LO, void**  fct_adf_v, void** fct_adf_h, void** UV_rhs, void** area_inv, int* myDim_nod2D, int* eDim_nod2D, int* myDim_elem2D, int* myDim_edge2D, int* nl, void** nlevels_nod2D, void** nlevels_elem2D, void** elem2D_nodes, void** nod_in_elem2D_num, void** nod_in_elem2D, int* nod_in_elem2D_dim, void** nod2D_edges, void** elem2D_edges, int* vlimit, real_type* flux_eps, real_type* bignumber, real_type* dt)
 {
+#if NUM_KERNELS < 1
+    return;
+#endif
     *alg_state = 0;
     bool status = true;
     int nNodes = (*myDim_nod2D) + (*eDim_nod2D);
@@ -283,7 +288,9 @@ void fct_ale_pre_comm_acc_( int* alg_state, void** fct_ttf_max, void**  fct_ttf_
 
 void fct_ale_inter_comm_acc_( int* alg_state, void**  fct_plus, void**  fct_minus, void**  fct_adf_v, int* myDim_nod2D, int* nl, void** nlevels_nod2D)
 {
-    *alg_state = 7;
+#if NUM_KERNELS < 7
+    return;
+#endif
     int maxLevels = *nl - 1;
     int* nlevels_nod2D_dev = reinterpret_cast<int*>(static_cast<gpuMemory*>(*nlevels_nod2D)->device_pointer);
     real_type* fct_adf_v_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(*fct_adf_v)->device_pointer);
@@ -291,4 +298,24 @@ void fct_ale_inter_comm_acc_( int* alg_state, void**  fct_plus, void**  fct_minu
     real_type* fct_min_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(*fct_minus)->device_pointer);
     fct_ale_b3_vertical<<< dim3(*myDim_nod2D), dim3(32) >>>(maxLevels, nlevels_nod2D_dev, fct_adf_v_dev, fct_plus_dev, fct_min_dev);
     transfer_back(*fct_adf_v, "fct_adf_v", alg_state);
+    *alg_state = 7;
+}
+
+void fct_ale_post_comm_acc_( int* alg_state, void**  fct_plus, void**  fct_minus, void** fct_adf_h, int* myDim_edge2D, int* nl, void** nlevels_nod2D, int* nod_in_elem2D_dim, void** nod2D_edges, void** elem2D_edges)
+{
+#if NUM_KERNELS < 8
+    return;
+#endif
+    int maxLevels = *nl - 1;
+    int maxnElems = *nod_in_elem2D_dim;
+    int* nlevels_nod2D_dev = reinterpret_cast<int*>(static_cast<gpuMemory*>(*nlevels_nod2D)->device_pointer);
+    int* nod2D_edges_dev = reinterpret_cast<int*>(static_cast<gpuMemory*>(*nod2D_edges)->device_pointer);
+    int* elem2D_edges_dev = reinterpret_cast<int*>(static_cast<gpuMemory*>(*elem2D_edges)->device_pointer);
+    real_type* fct_adf_h_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(*fct_adf_h)->device_pointer);
+    real_type* fct_plus_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(*fct_plus)->device_pointer);
+    real_type* fct_min_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(*fct_minus)->device_pointer);
+
+    fct_ale_b3_horizontal<< dim3(*myDim_edge2D), dim3(32) >>(maxLevels, nlevels_nod2D_dev, nod2D_edges_dev, elem2D_edges_dev, fct_adf_h_dev, fct_plus, fct_minus);
+    *alg_state = 9;
+    transfer_back(*fct_adf_h, "fct_adf_h", alg_state);
 }
