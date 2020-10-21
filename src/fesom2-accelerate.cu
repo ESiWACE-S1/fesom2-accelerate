@@ -199,7 +199,7 @@ inline void transfer_back(void* memory, const std::string& variable, int* state)
     }
 }
 
-#define NUM_KERNELS 100
+#define NUM_KERNELS 10
 
 void fct_ale_pre_comm_acc_( int* alg_state, void** fct_ttf_max, void**  fct_ttf_min, void**  fct_plus, void**  fct_minus, void** ttf, void** fct_LO, void**  fct_adf_v, void** fct_adf_h, void** UV_rhs, void** area_inv, int* myDim_nod2D, int* eDim_nod2D, int* myDim_elem2D, int* myDim_edge2D, int* nl, void** nlevels_nod2D, void** nlevels_elem2D, void** elem2D_nodes, void** nod_in_elem2D_num, void** nod_in_elem2D, int* nod_in_elem2D_dim, void** nod2D_edges, void** elem2D_edges, int* vlimit, real_type* flux_eps, real_type* bignumber, real_type* dt)
 {
@@ -297,8 +297,8 @@ void fct_ale_inter_comm_acc_( int* alg_state, void**  fct_plus, void**  fct_minu
     real_type* fct_plus_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(*fct_plus)->device_pointer);
     real_type* fct_min_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(*fct_minus)->device_pointer);
     fct_ale_b3_vertical<<< dim3(*myDim_nod2D), dim3(32) >>>(maxLevels, nlevels_nod2D_dev, fct_adf_v_dev, fct_plus_dev, fct_min_dev);
-    transfer_back(*fct_adf_v, "fct_adf_v", alg_state);
     *alg_state = 7;
+    transfer_back(*fct_adf_v, "fct_adf_v", alg_state);
 }
 
 void fct_ale_post_comm_acc_( int* alg_state, void**  fct_plus, void**  fct_minus, void** fct_adf_h, int* myDim_edge2D, int* nl, void** nlevels_elem2D, int* nod_in_elem2D_dim, void** nod2D_edges, void** elem2D_edges)
@@ -306,6 +306,18 @@ void fct_ale_post_comm_acc_( int* alg_state, void**  fct_plus, void**  fct_minus
 #if NUM_KERNELS < 8
     return;
 #endif
+    bool status = transferToDevice(*static_cast<gpuMemory*>(*fct_plus)); 
+    if ( !status )
+    {
+        std::cerr<<"Error in transfer of fct_plus to device"<<std::endl;
+        return;
+    }
+    status = transferToDevice(*static_cast<gpuMemory*>(*fct_minus)); 
+    if ( !status )
+    {
+        std::cerr<<"Error in transfer of fct_minus to device"<<std::endl;
+        return;
+    }
     int maxLevels = *nl - 1;
     int maxnElems = *nod_in_elem2D_dim;
     int* nlevels_elem2D_dev = reinterpret_cast<int*>(static_cast<gpuMemory*>(*nlevels_elem2D)->device_pointer);
@@ -316,6 +328,6 @@ void fct_ale_post_comm_acc_( int* alg_state, void**  fct_plus, void**  fct_minus
     real_type* fct_min_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(*fct_minus)->device_pointer);
 
     fct_ale_b3_horizontal<<< dim3(*myDim_edge2D), dim3(32) >>>(maxLevels, nlevels_elem2D_dev, nod2D_edges_dev, elem2D_edges_dev, fct_adf_h_dev, fct_plus_dev, fct_min_dev);
-    *alg_state = 9;
+    *alg_state = 8;
     transfer_back(*fct_adf_h, "fct_adf_h", alg_state);
 }
