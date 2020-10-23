@@ -14,19 +14,26 @@ extern __global__ void fct_ale_pre_comm(const int max_levels, const int num_node
 extern __global__ void fct_ale_b3_vertical(const int maxLevels, const int * __restrict__ nLevels, double * __restrict__ fct_adf_v, const double * __restrict__ fct_plus, const double * __restrict__ fct_minus);
 extern __global__ void fct_ale_b3_horizontal(const int maxLevels, const int * __restrict__ nLevels, const int * __restrict__ nodesPerEdge, const int * __restrict__ elementsPerEdge, double * __restrict__ fct_adf_h, const double * __restrict__ fct_plus, const double * __restrict__ fct_minus);
 
-struct gpuMemory * allocate(void * hostMemory, std::size_t size)
+struct gpuMemory * allocate(void * hostMemory, std::size_t size, bool new_stream=false)
 {
     cudaError_t status = cudaSuccess;
     struct gpuMemory * allocatedMemory = new struct gpuMemory;
 
     allocatedMemory->host_pointer = hostMemory;
     allocatedMemory->size = size;
+    allocatedMemory->stream = (cudaStream_t)0;
     status = cudaMalloc(&(allocatedMemory->device_pointer), size);
     if ( !errorHandling(status) )
     {
         delete allocatedMemory;
         return nullptr;
     }
+    cudaStream_t s;
+    if(new_stream)
+    {
+        status = cudaStreamCreate(&s);
+    }
+    allocatedMemory->stream = s;
     return allocatedMemory;
 }
 
@@ -124,6 +131,13 @@ void alloc_var_(void** ret, real_type* host_ptr, int* size, int* istat)
     *ret = (void*)gpumem;
 }
 
+void alloc_var_stream_(void** ret, real_type* host_ptr, int* size, int* istat)
+{
+    struct gpuMemory* gpumem = allocate((void*)host_ptr, (*size) * sizeof(real_type), true);
+    *istat = (gpumem == nullptr)?1:0;
+    *ret = (void*)gpumem;
+}
+
 void allocate_pinned_doubles_(void** hostptr, int* size)
 {
     cudaError_t status = cudaSuccess;
@@ -145,12 +159,19 @@ void transfer_var_async_(void** mem, real_type* host_ptr)
 {
     struct gpuMemory* mem_gpu = static_cast<gpuMemory*>(*mem);
     mem_gpu->host_pointer = (void*)host_ptr;
-    transferToDevice(*mem_gpu, false);
+    transferToDevice(*mem_gpu, false, mem_gpu->stream);
 }
 
 void reserve_var_(void** ret, int* size, int* istat)
 {
     struct gpuMemory* gpumem = allocate(nullptr, (*size) * sizeof(real_type));
+    *istat = (gpumem == nullptr)?1:0;
+    *ret = (void*)gpumem;
+}
+
+void reserve_var_stream_(void** ret, int* size, int* istat)
+{
+    struct gpuMemory* gpumem = allocate(nullptr, (*size) * sizeof(real_type), true);
     *istat = (gpumem == nullptr)?1:0;
     *ret = (void*)gpumem;
 }
@@ -185,13 +206,21 @@ void set_mpi_rank_(int* rank, int* total_ranks)
     }
 }
 
-inline void transfer_back(void* memory, const std::string& variable, int* state)
+inline void transfer_back(void* memory, const std::string& variable, int* state, bool async=false)
 {
     if(*state == 0)
     {
         return;
     }
-    bool status =  transferToHost(*static_cast<gpuMemory*>(memory));
+    bool status;
+    if(async)
+    {
+        status =  transferToHost(*static_cast<gpuMemory*>(memory), false, static_cast<gpuMemory*>(memory)->stream);
+    }
+    else
+    {
+        status =  transferToHost(*static_cast<gpuMemory*>(memory));
+    }
     if ( !status )
     {
         std::cerr<<"Error in transfer "<<variable<<" to host"<<std::endl;
@@ -239,7 +268,10 @@ void fct_ale_pre_comm_acc_( int* alg_state, void** fct_ttf_max, void**  fct_ttf_
     real_type* fct_plus_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(*fct_plus)->device_pointer);
     real_type* fct_min_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(*fct_minus)->device_pointer);
     real_type* area_inv_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(*area_inv)->device_pointer);
-
+    if(static_cast<gpuMemory*>(*ttf)->stream != (cudaStream_t)0)
+    {
+        cudaStreamSynchronize(static_cast<gpuMemory*>(*ttf)->stream);
+    }
     fct_ale_a1<<< dim3(nNodes), dim3(32) >>>(maxLevels, fct_lo_dev, ttf_dev, nlevels_nod2D_dev, fct_ttf_max_dev, fct_ttf_min_dev);
 #if NUM_KERNELS < 2
     *alg_state = 1;
@@ -262,6 +294,10 @@ void fct_ale_pre_comm_acc_( int* alg_state, void** fct_ttf_max, void**  fct_ttf_
     transfer_back(*fct_ttf_min, "fct_ttf_min", alg_state);
     return;
 #endif
+    if(static_cast<gpuMemory*>(*fct_adf_v)->stream != (cudaStream_t)0)
+    {
+        cudaStreamSynchronize(static_cast<gpuMemory*>(*fct_adf_v)->stream);
+    }
     fct_ale_b1_vertical<<< dim3(*myDim_nod2D), dim3(32) >>>(maxLevels, nlevels_nod2D_dev, fct_adf_v_dev, fct_plus_dev, fct_min_dev);
 #if NUM_KERNELS < 5
     *alg_state = 4;
@@ -271,6 +307,10 @@ void fct_ale_pre_comm_acc_( int* alg_state, void** fct_ttf_max, void**  fct_ttf_
     transfer_back(*fct_minus, "fct_minus", alg_state);
     return;
 #endif
+    if(static_cast<gpuMemory*>(*fct_adf_h)->stream != (cudaStream_t)0)
+    {
+        cudaStreamSynchronize(static_cast<gpuMemory*>(*fct_adf_h)->stream);
+    }
     fct_ale_b1_horizontal<<< dim3(*myDim_nod2D), dim3(32) >>>(maxLevels, nlevels_elem2D_dev, nod2D_edges_dev, elem2D_edges_dev, fct_adf_h_dev, fct_plus_dev, fct_min_dev);
 #if NUM_KERNELS < 6
     *alg_state = 5;
@@ -296,9 +336,10 @@ void fct_ale_inter_comm_acc_( int* alg_state, void**  fct_plus, void**  fct_minu
     real_type* fct_adf_v_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(*fct_adf_v)->device_pointer);
     real_type* fct_plus_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(*fct_plus)->device_pointer);
     real_type* fct_min_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(*fct_minus)->device_pointer);
-    fct_ale_b3_vertical<<< dim3(*myDim_nod2D), dim3(32) >>>(maxLevels, nlevels_nod2D_dev, fct_adf_v_dev, fct_plus_dev, fct_min_dev);
+    cudaStreamSynchronize(0);
+    fct_ale_b3_vertical<<< dim3(*myDim_nod2D), dim3(32), 0, fct_adf_v->stream >>>(maxLevels, nlevels_nod2D_dev, fct_adf_v_dev, fct_plus_dev, fct_min_dev);
     *alg_state = 7;
-    transfer_back(*fct_adf_v, "fct_adf_v", alg_state);
+    transfer_back(*fct_adf_v, "fct_adf_v", alg_state, true);
 }
 
 void fct_ale_post_comm_acc_( int* alg_state, void**  fct_plus, void**  fct_minus, void** fct_adf_h, int* myDim_edge2D, int* nl, void** nlevels_elem2D, int* nod_in_elem2D_dim, void** nod2D_edges, void** elem2D_edges)
@@ -326,8 +367,13 @@ void fct_ale_post_comm_acc_( int* alg_state, void**  fct_plus, void**  fct_minus
     real_type* fct_adf_h_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(*fct_adf_h)->device_pointer);
     real_type* fct_plus_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(*fct_plus)->device_pointer);
     real_type* fct_min_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(*fct_minus)->device_pointer);
-
-    fct_ale_b3_horizontal<<< dim3(*myDim_edge2D), dim3(32) >>>(maxLevels, nlevels_elem2D_dev, nod2D_edges_dev, elem2D_edges_dev, fct_adf_h_dev, fct_plus_dev, fct_min_dev);
+    cudaStreamSynchronize(0);
+    fct_ale_b3_horizontal<<< dim3(*myDim_edge2D), dim3(32) 0, fct_adf_h->stream  >>>(maxLevels, nlevels_elem2D_dev, nod2D_edges_dev, elem2D_edges_dev, fct_adf_h_dev, fct_plus_dev, fct_min_dev);
     *alg_state = 8;
-    transfer_back(*fct_adf_h, "fct_adf_h", alg_state);
+    transfer_back(*fct_adf_h, "fct_adf_h", alg_state, true);
+}
+
+void wait_for_transfer_(void** mem)
+{
+    cudaStreamSynchronize(static_cast<gpuMemory*>(*mem)->stream);
 }

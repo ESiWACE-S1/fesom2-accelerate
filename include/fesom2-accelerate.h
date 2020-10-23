@@ -21,6 +21,8 @@ struct gpuMemory {
     void * device_pointer;
     /** Size of the allocated memory, in bytes. */
     std::size_t size;
+    /** Stream **/
+    cudaStream_t stream;
 };
 
 /**
@@ -49,7 +51,7 @@ inline bool errorHandling(cudaError_t error)
 
  @return A pointer to struct gpuMemory containing the allocated device pointer
 */
-struct gpuMemory * allocate(void * hostMemory, std::size_t size);
+struct gpuMemory * allocate(void * hostMemory, std::size_t size, bool new_stream=false);
 
 /**
  Function to transfer data from the host to the device.
@@ -122,9 +124,12 @@ void set_mpi_rank_(int* rank, int* total_ranks);
 void allocate_pinned_doubles_(void** hostptr, int* size);
 void transfer_mesh_(void** ret, int* host_ptr, int* size, int* istat);
 void alloc_var_(void** ret, real_type* host_ptr, int* size, int* istat);
+void alloc_var_stream_(void** ret, real_type* host_ptr, int* size, int* istat);
 void reserve_var_(void** ret, int* size, int* istat);
+void reserve_var_stream_(void** ret, int* size, int* istat);
 void transfer_var_(void** mem, real_type* host_ptr);
 void transfer_var_async_(void** mem, real_type* host_ptr);
+void wait_for_transfer_(void** mem)
 
 void fct_ale_pre_comm_acc_( int* alg_state, void** fct_ttf_max, void**  fct_ttf_min, void**  fct_plus, void**  fct_minus, void** ttf, void** fct_LO, void**  fct_adf_v, void** fct_adf_h, void** UV_rhs, void** area_inv, int* myDim_nod2D, int* eDim_nod2D, int* myDim_elem2D, int* myDim_edge2D, int* nl, void** nlevels_nod2D, void** nlevels_elem2D, void** elem2D_nodes, void** nod_in_elem2D_num, void** nod_in_elem2D, int* nod_in_elem2D_dim, void** nod2D_edges, void** elem2D_edges, int* vlimit, real_type* flux_eps, real_type* bignumber, real_type* dt);
 void fct_ale_inter_comm_acc_( int* alg_state, void**  fct_plus, void**  fct_minus, void**  fct_adf_v, int* myDim_nod2D, int* nl, void** nlevels_nod2D);
