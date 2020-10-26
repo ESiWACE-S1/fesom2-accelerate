@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <limits>
+#include <chrono>
 #ifdef __CUDACC__
 #include <driver_types.h>
 #include <cuda_runtime_api.h>
@@ -9,6 +10,7 @@
 using real_type = double;
 
 #ifdef __CUDACC__
+#define TIME_TRANSFERS 0
 using real2_type = double2;
 
 /**
@@ -65,6 +67,9 @@ struct gpuMemory * allocate(void * hostMemory, std::size_t size, bool new_stream
 inline bool transferToDevice(gpuMemory & buffer, bool synchronous = true, cudaStream_t stream = (cudaStream_t) 0)
 {
     cudaError_t status = cudaSuccess;
+#if TIME_TRANSFERS
+    auto t_start = std::chrono::high_resolution_clock::now();
+#endif
     if ( synchronous )
     {
         status = cudaMemcpy(buffer.device_pointer, buffer.host_pointer, buffer.size, cudaMemcpyHostToDevice);
@@ -73,6 +78,10 @@ inline bool transferToDevice(gpuMemory & buffer, bool synchronous = true, cudaSt
     {
         cudaMemcpyAsync(buffer.device_pointer, buffer.host_pointer, buffer.size, cudaMemcpyHostToDevice, stream);
     }
+#if TIME_TRANSFERS
+    auto t_end = std::chrono::high_resolution_clock::now();
+    std::cerr<<(synchronous?"Sync ":"Async")<<" HtoD[mus]: "<<std::chrono::duration<double, std::micro>(t_end-t_start).count()<<std::endl;
+#endif
     return errorHandling(status);
 }
 
@@ -88,6 +97,9 @@ inline bool transferToDevice(gpuMemory & buffer, bool synchronous = true, cudaSt
 inline bool transferToHost(gpuMemory & buffer, bool synchronous = true, cudaStream_t stream = (cudaStream_t) 0)
 {
     cudaError_t status= cudaSuccess;
+#if TIME_TRANSFERS
+    auto t_start = std::chrono::high_resolution_clock::now();
+#endif
     if ( synchronous )
     {
         status = cudaMemcpy(buffer.host_pointer, buffer.device_pointer, buffer.size, cudaMemcpyDeviceToHost);
@@ -96,7 +108,10 @@ inline bool transferToHost(gpuMemory & buffer, bool synchronous = true, cudaStre
     {
         cudaMemcpyAsync(buffer.host_pointer, buffer.device_pointer, buffer.size, cudaMemcpyDeviceToHost, stream);
     }
-    
+#if TIME_TRANSFERS
+    auto t_end = std::chrono::high_resolution_clock::now();
+    std::cerr<<(synchronous?"Sync ":"Async")<<" DtoH[mus]: "<<std::chrono::duration<double, std::micro>(t_end-t_start).count()<<std::endl;
+#endif
     return errorHandling(status);
 }
 
@@ -129,7 +144,7 @@ void reserve_var_(void** ret, int* size, int* istat);
 void reserve_var_stream_(void** ret, int* size, int* istat);
 void transfer_var_(void** mem, real_type* host_ptr);
 void transfer_var_async_(void** mem, real_type* host_ptr);
-void wait_for_transfer_(void** mem)
+void wait_for_transfer_(void** mem);
 
 void fct_ale_pre_comm_acc_( int* alg_state, void** fct_ttf_max, void**  fct_ttf_min, void**  fct_plus, void**  fct_minus, void** ttf, void** fct_LO, void**  fct_adf_v, void** fct_adf_h, void** UV_rhs, void** area_inv, int* myDim_nod2D, int* eDim_nod2D, int* myDim_elem2D, int* myDim_edge2D, int* nl, void** nlevels_nod2D, void** nlevels_elem2D, void** elem2D_nodes, void** nod_in_elem2D_num, void** nod_in_elem2D, int* nod_in_elem2D_dim, void** nod2D_edges, void** elem2D_edges, int* vlimit, real_type* flux_eps, real_type* bignumber, real_type* dt);
 void fct_ale_inter_comm_acc_( int* alg_state, void**  fct_plus, void**  fct_minus, void**  fct_adf_v, int* myDim_nod2D, int* nl, void** nlevels_nod2D);

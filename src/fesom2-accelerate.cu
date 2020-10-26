@@ -14,7 +14,7 @@ extern __global__ void fct_ale_pre_comm(const int max_levels, const int num_node
 extern __global__ void fct_ale_b3_vertical(const int maxLevels, const int * __restrict__ nLevels, double * __restrict__ fct_adf_v, const double * __restrict__ fct_plus, const double * __restrict__ fct_minus);
 extern __global__ void fct_ale_b3_horizontal(const int maxLevels, const int * __restrict__ nLevels, const int * __restrict__ nodesPerEdge, const int * __restrict__ elementsPerEdge, double * __restrict__ fct_adf_h, const double * __restrict__ fct_plus, const double * __restrict__ fct_minus);
 
-struct gpuMemory * allocate(void * hostMemory, std::size_t size, bool new_stream=false)
+struct gpuMemory * allocate(void * hostMemory, std::size_t size, bool new_stream)
 {
     cudaError_t status = cudaSuccess;
     struct gpuMemory * allocatedMemory = new struct gpuMemory;
@@ -337,7 +337,8 @@ void fct_ale_inter_comm_acc_( int* alg_state, void**  fct_plus, void**  fct_minu
     real_type* fct_plus_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(*fct_plus)->device_pointer);
     real_type* fct_min_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(*fct_minus)->device_pointer);
     cudaStreamSynchronize(0);
-    fct_ale_b3_vertical<<< dim3(*myDim_nod2D), dim3(32), 0, fct_adf_v->stream >>>(maxLevels, nlevels_nod2D_dev, fct_adf_v_dev, fct_plus_dev, fct_min_dev);
+    cudaStream_t stream = static_cast<gpuMemory*>(*fct_adf_v)->stream;
+    fct_ale_b3_vertical<<< dim3(*myDim_nod2D), dim3(32), 0, stream >>>(maxLevels, nlevels_nod2D_dev, fct_adf_v_dev, fct_plus_dev, fct_min_dev);
     *alg_state = 7;
     transfer_back(*fct_adf_v, "fct_adf_v", alg_state, true);
 }
@@ -368,7 +369,8 @@ void fct_ale_post_comm_acc_( int* alg_state, void**  fct_plus, void**  fct_minus
     real_type* fct_plus_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(*fct_plus)->device_pointer);
     real_type* fct_min_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(*fct_minus)->device_pointer);
     cudaStreamSynchronize(0);
-    fct_ale_b3_horizontal<<< dim3(*myDim_edge2D), dim3(32) 0, fct_adf_h->stream  >>>(maxLevels, nlevels_elem2D_dev, nod2D_edges_dev, elem2D_edges_dev, fct_adf_h_dev, fct_plus_dev, fct_min_dev);
+    cudaStream_t stream = static_cast<gpuMemory*>(*fct_adf_h)->stream;
+    fct_ale_b3_horizontal<<< dim3(*myDim_edge2D), dim3(32), 0, stream  >>>(maxLevels, nlevels_elem2D_dev, nod2D_edges_dev, elem2D_edges_dev, fct_adf_h_dev, fct_plus_dev, fct_min_dev);
     *alg_state = 8;
     transfer_back(*fct_adf_h, "fct_adf_h", alg_state, true);
 }
