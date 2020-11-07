@@ -113,7 +113,7 @@ void fct_ale_a1_a2_accelerated(const int maxLevels, const int nNodes, const int 
 
 void transfer_mesh_(void** ret, int* host_ptr, int* size, int* istat)
 {
-    struct gpuMemory* gpumem = allocate((void*)host_ptr, (*size) * sizeof(int));
+    struct gpuMemory* gpumem = allocate((void*)host_ptr, (*size) * sizeof(int), false);
     if ( transferToDevice(*gpumem) )
     {
         *ret = (void*)gpumem;
@@ -239,7 +239,7 @@ inline void transfer_back(void* memory, const std::string& variable, int* state,
         status =  transferToHost(*static_cast<gpuMemory*>(memory), false, s);
         if(record_event)
         {
-            cudaEeventRecord(static_cast<gpuMemory*>(memory)->event, stream);
+            cudaEventRecord(static_cast<gpuMemory*>(memory)->event, s);
         }
     }
     else
@@ -290,8 +290,7 @@ void fct_ale_pre_comm_acc_( int* alg_state, void** s, void** fct_ttf_max, void**
     real_type* fct_min_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(*fct_minus)->device_pointer);
     real_type* area_inv_dev = reinterpret_cast<real_type*>(static_cast<gpuMemory*>(*area_inv)->device_pointer);
 
-    cudaStreamWaitEvent(*stream, static_cast<gpuMemory*>(*ttf)->event);
-    cudaStreamWaitEvent(*stream, static_cast<gpuMemory*>(*fct_LO)->event);
+    cudaStreamWaitEvent(*stream, static_cast<gpuMemory*>(*ttf)->event, 0);
     fct_ale_a1<<< dim3(nNodes), dim3(32), 0, *stream >>>(maxLevels, fct_lo_dev, ttf_dev, nlevels_nod2D_dev, fct_ttf_max_dev, fct_ttf_min_dev);
 #if NUM_KERNELS < 2
     *alg_state = 1;
@@ -314,7 +313,7 @@ void fct_ale_pre_comm_acc_( int* alg_state, void** s, void** fct_ttf_max, void**
     transfer_back(*fct_ttf_min, "fct_ttf_min", alg_state, true, *stream);
     return;
 #endif
-    cudaStreamWaitEvent(*stream, static_cast<gpuMemory*>(*fct_adf_v)->event);
+    cudaStreamWaitEvent(*stream, static_cast<gpuMemory*>(*fct_adf_v)->event, 0);
     fct_ale_b1_vertical<<< dim3(*myDim_nod2D), dim3(32), 0, *stream >>>(maxLevels, nlevels_nod2D_dev, fct_adf_v_dev, fct_plus_dev, fct_min_dev);
 #if NUM_KERNELS < 5
     *alg_state = 4;
@@ -324,7 +323,7 @@ void fct_ale_pre_comm_acc_( int* alg_state, void** s, void** fct_ttf_max, void**
     transfer_back(*fct_minus, "fct_minus", alg_state, true, *stream);
     return;
 #endif
-    cudaStreamWaitEvent(*stream, static_cast<gpuMemory*>(*fct_adf_h)->event);
+    cudaStreamWaitEvent(*stream, static_cast<gpuMemory*>(*fct_adf_h)->event, 0);
     fct_ale_b1_horizontal<<< dim3(*myDim_nod2D), dim3(32), 0, *stream  >>>(maxLevels, nlevels_elem2D_dev, nod2D_edges_dev, elem2D_edges_dev, fct_adf_h_dev, fct_plus_dev, fct_min_dev);
 #if NUM_KERNELS < 6
     *alg_state = 5;
@@ -362,8 +361,8 @@ void fct_ale_post_comm_acc_( int* alg_state, void** s, void**  fct_plus, void** 
     return;
 #endif
     cudaStream_t* stream = static_cast<cudaStream_t*>(*s);
-    transferToDevice(*static_cast<gpuMemory*>(*fct_plus), false, *stream, true); 
-    transferToDevice(*static_cast<gpuMemory*>(*fct_minus), false, *stream, true); 
+    transferToDevice(*static_cast<gpuMemory*>(*fct_plus), false, *stream); 
+    transferToDevice(*static_cast<gpuMemory*>(*fct_minus), false, *stream); 
 
     int maxLevels = *nl - 1;
     int maxnElems = *nod_in_elem2D_dim;

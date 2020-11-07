@@ -53,7 +53,7 @@ inline bool errorHandling(cudaError_t error)
 
  @return A pointer to struct gpuMemory containing the allocated device pointer
 */
-struct gpuMemory * allocate(void * hostMemory, std::size_t size);
+struct gpuMemory * allocate(void * hostMemory, std::size_t size, bool create_event);
 
 /**
  Function to transfer data from the host to the device.
@@ -79,7 +79,7 @@ inline bool transferToDevice(gpuMemory & buffer, bool synchronous = true, cudaSt
         cudaMemcpyAsync(buffer.device_pointer, buffer.host_pointer, buffer.size, cudaMemcpyHostToDevice, stream);
         if(record_event)
         {
-            cudaEeventRecord(buffer.event, stream);
+            cudaEventRecord(buffer.event, stream);
         }
     }
 #if TIME_TRANSFERS
@@ -113,7 +113,7 @@ inline bool transferToHost(gpuMemory & buffer, bool synchronous = true, cudaStre
         cudaMemcpyAsync(buffer.host_pointer, buffer.device_pointer, buffer.size, cudaMemcpyDeviceToHost, stream);
         if(record_event)
         {
-            cudaEeventRecord(buffer.event, stream);
+            cudaEventRecord(buffer.event, stream);
         }
     }
 #if TIME_TRANSFERS
