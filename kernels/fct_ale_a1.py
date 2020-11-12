@@ -1,52 +1,30 @@
 
 from kernel_tuner import tune_kernel
+from jinja2 import Environment, FileSystemLoader
 import numpy
 import argparse
 import json
 
 
 def generate_code(tuning_parameters):
-    code = \
-        "__global__ void fct_ale_a1(const int maxLevels, const <%REAL_TYPE%> * __restrict__ fct_low_order, const <%REAL_TYPE%> * __restrict__ ttf, const int * __restrict__ nLevels, <%REAL_TYPE%> * __restrict__ fct_ttf_max, <%REAL_TYPE%> * __restrict__ fct_ttf_min)\n" \
-        "{\n" \
-        "const <%INT_TYPE%> node = (blockIdx.x * maxLevels);\n" \
-        "const <%INT_TYPE%> maxNodeLevel = nLevels[blockIdx.x] - 1;\n" \
-        "<%REAL_TYPE%> fct_low_order_item = 0;\n" \
-        "<%REAL_TYPE%> ttf_item = 0;\n" \
-        "\n" \
-        "for ( <%INT_TYPE%> level = threadIdx.x; level < maxNodeLevel; level += <%BLOCK_SIZE%> )\n" \
-        "{\n" \
-        "<%COMPUTE_BLOCK%>" \
-        "}\n" \
-        "}\n"
-    compute_block = \
-        "fct_low_order_item = fct_low_order[node + level + <%OFFSET%>];\n" \
-        "ttf_item = ttf[node + level + <%OFFSET%>];\n" \
-        "fct_ttf_max[node + level + <%OFFSET%>] = <%FMAX%>(fct_low_order_item, ttf_item);\n" \
-        "fct_ttf_min[node + level + <%OFFSET%>] = <%FMIN%>(fct_low_order_item, ttf_item);\n"
+    template_loader = FileSystemLoader("./templates")
+    template_environment = Environment(loader=template_loader)
+    template = template_environment.get_template("fct_ale_a1_template.cu")
     if tuning_parameters["tiling_x"] > 1:
-        code = code.replace("<%BLOCK_SIZE%>", str(tuning_parameters["block_size_x"] * tuning_parameters["tiling_x"]))
+        block_size = tuning_parameters["block_size_x"] * tuning_parameters["tiling_x"]
     else:
-        code = code.replace("<%BLOCK_SIZE%>", str(tuning_parameters["block_size_x"]))
-    compute = str()
-    for tile in range(0, tuning_parameters["tiling_x"]):
-        if tile == 0:
-            compute = compute + compute_block.replace(" + <%OFFSET%>", "")
-        else:
-            offset = tuning_parameters["block_size_x"] * tile
-            compute = compute + "if (level + {} < maxNodeLevel )\n{{\n{}}}\n".format(str(offset), compute_block.replace("<%OFFSET%>", str(offset)))
-    code = code.replace("<%COMPUTE_BLOCK%>", compute)
+        block_size = tuning_parameters["block_size_x"]
     if tuning_parameters["real_type"] == "float":
-        code = code.replace("<%FMAX%>", "fmaxf")
-        code = code.replace("<%FMIN%>", "fminf")
+        fmax = "fmaxf"
+        fmin = "fminf"
     elif tuning_parameters["real_type"] == "double":
-        code = code.replace("<%FMAX%>", "fmax")
-        code = code.replace("<%FMIN%>", "fmin")
+        fmax = "fmax"
+        fmin = "fmin"
     else:
         raise ValueError
-    code = code.replace("<%INT_TYPE%>", tuning_parameters["int_type"].replace("_", " "))
-    code = code.replace("<%REAL_TYPE%>", tuning_parameters["real_type"])
-    return code
+    int_type = tuning_parameters["int_type"].replace("_", " ")
+    real_type = tuning_parameters["real_type"]
+    return template.render(real_type=real_type, int_type=int_type, block_size=block_size, tiling_x = tuning_parameters["tiling_x"], fmax=fmax, fmin=fmin)
 
 
 def reference(nodes, levels, max_levels, fct_low_order, ttf, fct_ttf_max, fct_ttf_min):
