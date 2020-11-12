@@ -24,7 +24,7 @@ def generate_code(tuning_parameters):
         raise ValueError
     int_type = tuning_parameters["int_type"].replace("_", " ")
     real_type = tuning_parameters["real_type"]
-    return template.render(real_type=real_type, int_type=int_type, block_size=block_size, tiling_x = tuning_parameters["tiling_x"], fmax=fmax, fmin=fmin)
+    return template.render(real_type=real_type, int_type=int_type, block_size_x = tuning_parameters["block_size_x"], block_size=block_size, tiling_x = tuning_parameters["tiling_x"], fmax=fmax, fmin=fmin)
 
 
 def reference(nodes, levels, max_levels, fct_low_order, ttf, fct_ttf_max, fct_ttf_min):
