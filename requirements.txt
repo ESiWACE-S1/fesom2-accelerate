@@ -1,3 +1,6 @@
-kernel_tuner
-pytest
-numpy
+kernel_tuner == 0.3.2
+pytest == 6.1.2
+numpy == 1.19.4
+tuning-metrics
+matplotlib == 3.3.3
+jinja2 == 2.11.2
